@@ -1,5 +1,3 @@
-## Multi-stage Dockerfile for the CivicPulse Spring Boot backend
-
 # ---- Build Stage ----
 FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
@@ -18,7 +16,6 @@ FROM eclipse-temurin:17-jre-slim
 WORKDIR /app
 
 # Copy the built jar from the build stage
-# (Spring Boot produces exactly one jar in target/ for standard setups)
 COPY --from=build /app/target/*.jar /app/app.jar
 
 # Expose Spring Boot default port
@@ -29,3 +26,5 @@ RUN addgroup --system appgroup \
   && adduser --system --ingroup appgroup appuser
 USER appuser
 
+# START THE APPLICATION
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
