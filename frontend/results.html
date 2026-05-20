@@ -252,7 +252,14 @@ document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
 
 // ── API HELPERS ──
 async function apiFetch(path){
-  try{const r=await fetch(API+path);if(!r.ok)return null;return await r.json();}catch{return null;}
+  try{
+    const r = await fetch(API_BASE + path); // Fixed from API to API_BASE
+    if(!r.ok) return null;
+    return await r.json();
+  }catch(err){
+    console.error("Fetch error:", err); // Adds a console print so you can track errors easily
+    return null;
+  }
 }
 
 // ── MAIN REFRESH ──
