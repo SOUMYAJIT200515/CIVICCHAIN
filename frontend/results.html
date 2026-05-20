@@ -98,7 +98,7 @@
   .blockchain-section{margin-top:40px;}
   .blockchain-title{font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
   .blockchain-title .chain-icon{font-size:1.2rem;}
-  .blocks-chain{display:flex;flex-direction:column;gap:0;}
+  .blocks-chain{display:flex;flex-direction:column;gap:16px;}
   .block-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 24px;position:relative;transition:border-color .3s;}
   .block-card:hover{border-color:var(--accent);}
   .block-card.sealed{border-left:3px solid var(--success);}
@@ -161,7 +161,6 @@
 </div>
 
 <div class="main">
-  <!-- WINNER BANNER (shown after voting locked) -->
   <div class="winner-banner" id="winnerBanner">
     <div class="winner-emoji" id="winnerEmoji">🏆</div>
     <div class="winner-title">ELECTION WINNER</div>
@@ -171,12 +170,9 @@
       <br>Total votes cast: <span id="winnerTotalVotes">0</span> out of <span id="winnerTotalVoters">0</span> registered voters
     </div>
   </div>
-<div class="blocks-chain" id="blocksChain">
-  <div style="text-align:center;color:var(--muted);padding:40px;font-size:.85rem">Loading blocks...</div>
-</div>
+
   <div class="content-grid">
     <div class="results-grid">
-      <!-- PIE CHART -->
       <div class="chart-section">
         <div class="chart-header">
           <span>Vote Distribution</span>
@@ -194,7 +190,6 @@
         <div class="pie-legend" id="pieLegend"></div>
       </div>
 
-      <!-- CANDIDATE RANKING CARDS -->
       <div class="chart-section">
         <div class="chart-header">
           <span>Candidate Rankings</span>
@@ -207,7 +202,6 @@
       </div>
     </div>
 
-    <!-- SIDEBAR -->
     <div class="sidebar">
       <div class="sidebar-section">
         <div class="sidebar-label">Vote Summary</div>
@@ -230,12 +224,11 @@
     </div>
   </div>
 
-  <!-- BLOCKCHAIN EXPLORER -->
- <div class="blockchain-section">
+  <div class="blockchain-section">
     <div class="blockchain-title"><span class="chain-icon">⛓️</span> Blockchain Explorer — 10 Votes Per Block</div>
-    <!--<div class="blocks-chain" id="blocksChain">
+    <div class="blocks-chain" id="blocksChain">
       <div style="text-align:center;color:var(--muted);padding:40px;font-size:.85rem">Loading blocks...</div>
-    </div>-->
+    </div>
   </div>
 </div>
 
@@ -255,11 +248,11 @@ document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
 // ── API HELPERS ──
 async function apiFetch(path){
   try{
-    const r = await fetch(API_BASE + path); // Fixed from API to API_BASE
+    const r = await fetch(API_BASE + path);
     if(!r.ok) return null;
     return await r.json();
   }catch(err){
-    console.error("Fetch error:", err); // Adds a console print so you can track errors easily
+    console.error("Fetch error:", err);
     return null;
   }
 }
@@ -277,20 +270,17 @@ async function refreshData(){
   const voteList = votes || [];
   const voterList = voters || [];
 
-  // Voting status
   if(status){
     votingOpen = status.isOpen === true || status.status === 'OPEN';
     votingExpiry = status.expiryMillis || 0;
   }
 
-  // Total votes = all blockchain records (includes NOTA)
   const totalVotes = voteList.length;
   const candidateVotes = cands.reduce((s,c)=>s+(c.voteCount||0),0);
   const notaVotes = totalVotes - candidateVotes;
   const totalVoters = voterList.length;
   const turnout = totalVoters > 0 ? (totalVotes/totalVoters*100) : 0;
 
-  // Sort candidates by votes descending
   const sorted = cands.map((c,i)=>({
     ...c,
     color: c.color || COLORS[i%COLORS.length],
@@ -298,7 +288,6 @@ async function refreshData(){
     pct: totalVotes>0 ? ((c.voteCount||0)/totalVotes*100) : 0
   })).sort((a,b)=>(b.voteCount||0)-(a.voteCount||0));
 
-  // Add NOTA entry if there are NOTA votes
   if(notaVotes > 0){
     sorted.push({
       name: 'NOTA', party: 'None of the Above', emoji: '🚫',
@@ -310,15 +299,12 @@ async function refreshData(){
   const leader = sorted[0] || null;
   const resultsSealed = votingOpen && votingExpiry > Date.now();
 
-  // ── UPDATE STATS BAR ──
   animateNumber('totalVotes', totalVotes);
   animateNumber('totalVoters', totalVoters);
   document.getElementById('turnoutRate').textContent = turnout.toFixed(1)+'%';
   document.getElementById('blockHeight').textContent = '#'+Math.ceil(totalVotes/10);
 
-  // ── LEADER — hide while voting open ──
   const leaderEl = document.getElementById('leaderName');
-  const leaderCard = document.getElementById('leaderCard');
   if(resultsSealed){
     leaderEl.textContent = '🔒 Sealed';
     leaderEl.style.color = 'var(--muted)';
@@ -329,7 +315,6 @@ async function refreshData(){
     leaderEl.style.fontSize = '1.4rem';
   }
 
-  // ── VOTING BADGE & TIMER ──
   const badge = document.getElementById('votingBadge');
   const timerEl = document.getElementById('timerDisplay');
   const timerLabel = document.getElementById('timerLabel');
@@ -351,34 +336,21 @@ async function refreshData(){
     document.getElementById('liveLabel').textContent = 'Final';
   }
 
-  // ── SIDEBAR ──
   document.getElementById('sidebarTotal').textContent = totalVotes;
   document.getElementById('sidebarVoterCount').textContent = totalVoters;
   document.getElementById('turnoutBar').style.width = Math.min(turnout,100)+'%';
   document.getElementById('turnoutText').textContent = turnout.toFixed(1)+'% turnout';
 
-  // ── PIE CHART — show sealed overlay while voting open ──
   if(resultsSealed){
     renderPieSealed(totalVotes);
-  } else {
-    renderPie(sorted, totalVotes);
-  }
-
-  // ── CANDIDATE CARDS — show sealed overlay while voting open ──
-  if(resultsSealed){
     renderCandidateCardsSealed(sorted);
-  } else {
-    renderCandidateCards(sorted, totalVotes);
-  }
-
-  // ── RECENT VOTES — hide candidate names while voting open ──
-  if(resultsSealed){
     renderRecentSealed(voteList);
   } else {
+    renderPie(sorted, totalVotes);
+    renderCandidateCards(sorted, totalVotes);
     renderRecent(voteList);
   }
 
-  // ── WINNER / TIE BANNER (only when voting is closed and votes exist) ──
   const winnerBanner = document.getElementById('winnerBanner');
   if(!votingOpen && totalVotes > 0 && leader){
     const topVotes = leader.voteCount || 0;
@@ -412,7 +384,6 @@ async function refreshData(){
   }
 }
 
-// ── ANIMATE NUMBER ──
 function animateNumber(id, target){
   const el = document.getElementById(id);
   const current = parseInt(el.textContent.replace(/\D/g,''))||0;
@@ -427,7 +398,6 @@ function animateNumber(id, target){
   }, 30);
 }
 
-// ── PIE CHART ──
 function renderPie(data, total){
   const chart = document.getElementById('pieChart');
   const legend = document.getElementById('pieLegend');
@@ -460,7 +430,6 @@ function renderPie(data, total){
   `).join('');
 }
 
-// ── CANDIDATE RANKING CARDS ──
 function renderCandidateCards(data, total){
   const el = document.getElementById('candidateResults');
   if(data.length===0){
@@ -487,7 +456,6 @@ function renderCandidateCards(data, total){
   }).join('');
 }
 
-// ── RECENT VOTES ──
 function renderRecent(votes){
   const list = document.getElementById('recentList');
   const recent = (votes||[]).slice(-10).reverse();
@@ -504,7 +472,6 @@ function renderRecent(votes){
   `).join('');
 }
 
-// ── SEALED STATE RENDERERS (voting open — hide who is leading) ──
 function renderPieSealed(total){
   const chart = document.getElementById('pieChart');
   const legend = document.getElementById('pieLegend');
@@ -524,7 +491,6 @@ function renderCandidateCardsSealed(data){
     el.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px">No candidates registered</div>';
     return;
   }
-  // Show candidate names but hide their vote counts & percentages
   el.innerHTML = `
     <div style="text-align:center;padding:16px 0 8px;">
       <span style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--warning);letter-spacing:.1em;">⏳ RANKINGS HIDDEN UNTIL VOTING ENDS</span>
@@ -553,7 +519,6 @@ function renderRecentSealed(votes){
     list.innerHTML='<div style="color:var(--muted);text-align:center;padding:30px;font-size:.8rem">No votes yet</div>';
     return;
   }
-  // Show that votes happened but hide candidate names
   list.innerHTML = recent.map(v=>`
     <div class="recent-vote">
       <span class="vote-candidate" style="color:var(--muted)">🔒 Hidden</span>
