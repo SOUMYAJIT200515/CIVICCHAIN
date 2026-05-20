@@ -7,8 +7,6 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -25,35 +23,44 @@ public class OtpService {
     private String smsApiKey;
 
     public String generateAndSendOtp(String mobileNumber) {
-        // 1. Generate a secure 6-digit OTP
+        // 1. Clean the mobile number (Removes any accidental spaces, +91, or 0 prefixes)
+        String cleanMobile = mobileNumber.trim().replaceAll("\\s+", "");
+        if (cleanMobile.startsWith("+91")) {
+            cleanMobile = cleanMobile.substring(3);
+        } else if (cleanMobile.startsWith("0")) {
+            cleanMobile = cleanMobile.substring(1);
+        }
+
+        // 2. Generate a secure 6-digit numeric OTP
         String otp = String.format("%06d", random.nextInt(1000000)); 
 
         OtpData data = new OtpData(otp, LocalDateTime.now().plusMinutes(5));
-        otpStorage.put(mobileNumber, data);
+        otpStorage.put(cleanMobile, data);
 
-        // 2. Print to Render log as a safe backup
-        System.out.println("🔐 Securely generated OTP for " + mobileNumber + " is: " + otp);
+        // 3. Print to Render log as a safe fallback
+        System.out.println("🔐 Securely generated OTP for " + cleanMobile + " is: " + otp);
 
-        // 3. Real-Life SMS Gateway API Dispatch
         if (smsApiKey == null || smsApiKey.isEmpty()) {
             System.err.println("❌ SMS Gateway Error: SMS_API_KEY is missing in Render Environment Settings.");
             return otp;
         }
 
+        // 4. Real-Life SMS Gateway API Dispatch (Strict Fast2SMS Route parameters)
         try {
-            // Construct the message text safely encoded for URLs
-            String message = URLEncoder.encode("Your CivicChain security verification code is: " + otp + ". Valid for 5 minutes.", StandardCharsets.UTF_8);
-            
-            // Fast2SMS API Authorization URL endpoint
-            String urlString = "https://www.fast2sms.com/dev/bulkV2?authorization=" + smsApiKey 
-                             + "&variables_values=" + otp 
-                             + "&route=otp&numbers=" + mobileNumber;
+            String urlString = "https://www.fast2sms.com/dev/bulkV2"
+                             + "?authorization=" + smsApiKey.trim()
+                             + "&variables_values=" + otp
+                             + "&route=otp"
+                             + "&numbers=" + cleanMobile;
 
             URL url = new URL(urlString);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
+            
+            // Set browser headers so the gateway firewall recognizes the request safely
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+            conn.setRequestProperty("Accept", "application/json");
 
-            // Read the gateway server's response code
             int responseCode = conn.getResponseCode();
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -66,6 +73,16 @@ public class OtpService {
                 System.out.println("🚀 SMS Gateway Response: " + response.toString());
             } else {
                 System.err.println("❌ SMS Gateway HTTP Error Code: " + responseCode);
+                
+                // Read the exact reason the API gateway rejected it
+                if (conn.getErrorStream() != null) {
+                    BufferedReader errorIn = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+                    String errorLine;
+                    while ((errorLine = errorIn.readLine()) != null) {
+                        System.err.println("Detailed Gateway Error Message: " + errorLine);
+                    }
+                    errorIn.close();
+                }
             }
         } catch (Exception e) {
             System.err.println("❌ Failed to reach SMS network gateway: " + e.getMessage());
@@ -75,17 +92,21 @@ public class OtpService {
     }
 
     public boolean verifyOtp(String mobileNumber, String inputOtp) {
-        OtpData data = otpStorage.get(mobileNumber);
+        String cleanMobile = mobileNumber.trim().replaceAll("\\s+", "");
+        if (cleanMobile.startsWith("+91")) cleanMobile = cleanMobile.substring(3);
+        if (cleanMobile.startsWith("0")) cleanMobile = cleanMobile.substring(1);
+
+        OtpData data = otpStorage.get(cleanMobile);
 
         if (data == null) return false;
         if (LocalDateTime.now().isAfter(data.expiry)) {
-            otpStorage.remove(mobileNumber);
+            otpStorage.remove(cleanMobile);
             return false;
         }
 
-        boolean valid = data.otp.equals(inputOtp);
+        boolean valid = data.otp.equals(inputOtp.trim());
         if (valid) {
-            otpStorage.remove(mobileNumber); // Prevent reuse attacks
+            otpStorage.remove(cleanMobile); // Securely consume the OTP
         }
         return valid;
     }
