@@ -37,34 +37,33 @@ A secure, transparent, and decentralized voting platform built with blockchain t
 ```
 CIVICCHAIN/
 ├── backend/
-│   └── civicpulse/                    # Spring Boot Backend
+│   └── civicpulse/                        # Spring Boot Backend Application
 │       ├── src/
-│       │   └── main/java/com/example/civicpulse/
-│       │       ├── controller/        # REST API Controllers
-│       │       │   ├── AdminController.java
-│       │       │   ├── VoterController.java
-│       │       │   ├── CandidateController.java
-│       │       │   └── VotingController.java
-│       │       ├── service/           # Business Logic Services
-│       │       │   ├── AdminService.java
-│       │       │   ├── VotingService.java
-│       │       │   ├── CandidateService.java
-│       │       │   ├── BlockService.java
-│       │       │   └── OtpService.java
-│       │       └── entity/            # JPA Entities
-│       ├── pom.xml                    # Maven Dependencies
-│       ├── mvnw                       # Maven Wrapper (Linux/Mac)
-│       └── mvnw.cmd                   # Maven Wrapper (Windows)
-├── frontend/
-│   ├── index.html                     # Home/Dashboard Page
-│   ├── login.html                     # Voter Login
-│   ├── vote.html                      # Voting Interface
-│   ├── results.html                   # Results Display
-│   ├── admin.html                     # Admin Dashboard
-│   └── js/                            # JavaScript Files
-├── patch_login.py                     # Utility Script
-├── LICENSE                            # MIT License
-└── todo.md                            # Development Notes
+│       │   └── main/
+│       │       ├── java/com/example/civicpulse/ 
+│       │       │   ├── blockchain/        # Blockchain core logic (blocks, chains, hashing)
+│       │       │   ├── config/            # App configurations (Security, CORS, Beans)
+│       │       │   ├── controller/        # REST API Controllers (endpoints)
+│       │       │   ├── model/             # Data models and JPA Entities
+│       │       │   ├── repo/              # Database access layer (Spring Data JPA Repositories)
+│       │       │   └── service/           # Business logic and transaction handling
+│       │       └── resources/
+│       │           └── application.properties # Database and Spring configuration settings
+│       ├── pom.xml                        # Maven dependencies and build configs
+│       ├── mvnw                           # Maven Wrapper (Linux/Mac)
+│       └── mvnw.cmd                       # Maven Wrapper (Windows)
+│
+├── frontend/                              # Static Frontend Files
+│   ├── index.html                         # Home/Dashboard Page
+│   ├── login.html                         # Voter Login
+│   ├── vote.html                          # Voting Interface
+│   ├── results.html                       # Results Display
+│   ├── admin.html                         # Admin Dashboard
+│   └── js/                                # JavaScript Logic
+│
+├── patch_login.py                         # Utility Script
+├── LICENSE                                # MIT License
+└── todo.md                                # Development Notes and Tasks
 ```
 
 ## 🚀 Getting Started
