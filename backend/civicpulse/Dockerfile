@@ -12,7 +12,7 @@ COPY src ./src
 RUN mvn -DskipTests clean package
 
 # ---- Runtime Stage ----
-FROM eclipse-temurin:17-jre-slim
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 # Copy the built jar from the build stage
