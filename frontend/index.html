@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CivicChain · Decentralized E-Voting</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#030712;--surface:#0d1117;--border:#1e2936;--accent:#00e5ff;--accent2:#7c3aed;--text:#e2e8f0;--muted:#64748b;--success:#10b981;--warning:#f59e0b;--error:#ef4444;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;overflow-x:hidden;cursor:none;}
+    .cursor{width:12px;height:12px;background:var(--accent);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9999;mix-blend-mode:difference;}
+    .cursor-ring{width:36px;height:36px;border:1px solid var(--accent);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9998;opacity:.5;transition:width .2s,height .2s;}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.03) 1px,transparent 1px);background-size:60px 60px;z-index:0;pointer-events:none;}
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:20px 60px;background:rgba(3,7,18,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+    .logo{font-size:1.3rem;font-weight:800;letter-spacing:-.02em;color:var(--text);display:flex;align-items:center;gap:10px;text-decoration:none;}
+    .logo-dot{width:10px;height:10px;background:var(--accent);border-radius:50%;animation:pulse-dot 2s infinite;}
+    @keyframes pulse-dot{0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,.4)}50%{box-shadow:0 0 0 8px rgba(0,229,255,0)}}
+    .nav-links{display:flex;gap:32px;list-style:none;}
+    .nav-links a{color:var(--muted);text-decoration:none;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;font-weight:500;transition:color .2s;}
+    .nav-links a:hover{color:var(--text);}
+    .nav-cta{padding:10px 24px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:'Syne',sans-serif;font-size:.85rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:none;text-decoration:none;transition:background .2s,color .2s;}
+    .nav-cta:hover{background:var(--accent);color:var(--bg);}
+    .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:120px 60px 60px;position:relative;z-index:1;}
+    .hero-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid var(--border);border-left:3px solid var(--accent);font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;margin-bottom:40px;animation:fadeSlideUp .8s ease both;}
+    .status-dot{width:6px;height:6px;border-radius:50%;animation:blink 1.5s infinite;}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+    .hero-title{font-size:clamp(3rem,8vw,7rem);font-weight:800;line-height:.9;letter-spacing:-.04em;margin-bottom:30px;animation:fadeSlideUp .8s .1s ease both;}
+    .hero-title .line2{color:var(--accent);}
+    .hero-title .line3{-webkit-text-stroke:1px var(--muted);color:transparent;}
+    .hero-desc{max-width:500px;color:var(--muted);font-size:1rem;line-height:1.7;margin-bottom:50px;animation:fadeSlideUp .8s .2s ease both;font-weight:400;}
+    .hero-actions{display:flex;gap:16px;animation:fadeSlideUp .8s .3s ease both;}
+    .btn-primary{padding:16px 40px;background:var(--accent);color:var(--bg);font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;letter-spacing:.05em;text-transform:uppercase;border:none;cursor:none;text-decoration:none;display:inline-block;transition:transform .2s,box-shadow .2s;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 0 40px rgba(0,229,255,.3);}
+    .btn-ghost{padding:16px 40px;background:transparent;color:var(--text);font-family:'Syne',sans-serif;font-weight:600;font-size:.9rem;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--border);cursor:none;text-decoration:none;display:inline-block;transition:border-color .2s;}
+    .btn-ghost:hover{border-color:var(--text);}
+    .hero-visual{position:absolute;right:60px;top:50%;transform:translateY(-50%);width:420px;animation:fadeSlideLeft 1s .4s ease both;}
+    .chain-viz{position:relative;width:100%;height:420px;}
+    .block-card{position:absolute;background:var(--surface);border:1px solid var(--border);padding:16px 20px;font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted);}
+    .block-card:hover{border-color:var(--accent);}
+    .block-num{color:var(--accent);font-size:.6rem;letter-spacing:.1em;margin-bottom:8px;}
+    .block-hash{color:var(--text);font-size:.65rem;margin-bottom:6px;}
+    .block-votes{color:var(--success);font-size:.6rem;}
+    .block-card:nth-child(1){top:0;left:20px;width:240px;animation:floatA 4s ease-in-out infinite;}
+    .block-card:nth-child(2){top:120px;right:0;width:200px;animation:floatB 4s .5s ease-in-out infinite;}
+    .block-card:nth-child(3){top:240px;left:40px;width:220px;animation:floatA 4s 1s ease-in-out infinite;}
+    .block-card:nth-child(4){bottom:20px;right:20px;width:180px;animation:floatB 4s 1.5s ease-in-out infinite;}
+    .chain-line{position:absolute;background:linear-gradient(90deg,transparent,var(--accent),transparent);height:1px;opacity:.4;}
+    .chain-line:nth-child(5){top:80px;left:10px;width:300px;transform:rotate(25deg);}
+    .chain-line:nth-child(6){top:200px;right:0;width:250px;transform:rotate(-15deg);}
+    .chain-line:nth-child(7){bottom:100px;left:20px;width:280px;transform:rotate(10deg);}
+    @keyframes floatA{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    @keyframes floatB{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+    @keyframes fadeSlideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeSlideLeft{from{opacity:0;transform:translate(30px,-50%)}to{opacity:1;transform:translate(0,-50%)}}
+    .stats-bar{position:relative;z-index:1;display:flex;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:0 0 100px;}
+    .stat-item{flex:1;padding:30px 60px;border-right:1px solid var(--border);}
+    .stat-item:last-child{border-right:none;}
+    .stat-num{font-size:2.5rem;font-weight:800;letter-spacing:-.04em;color:var(--text);}
+    .stat-num span{color:var(--accent);}
+    .stat-label{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;}
+    .section{position:relative;z-index:1;padding:0 60px 100px;}
+    .section-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:60px;padding-bottom:30px;border-bottom:1px solid var(--border);}
+    .section-label{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:12px;}
+    .section-title{font-size:2.5rem;font-weight:800;letter-spacing:-.03em;}
+    .steps-grid{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--border);}
+    .step-card{padding:40px 30px;border-right:1px solid var(--border);transition:background .3s;}
+    .step-card:last-child{border-right:none;}
+    .step-card:hover{background:rgba(0,229,255,.03);}
+    .step-num{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--accent);letter-spacing:.2em;margin-bottom:20px;}
+    .step-title{font-size:1.1rem;font-weight:700;margin-bottom:12px;}
+    .step-desc{font-size:.85rem;color:var(--muted);line-height:1.6;}
+    .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);}
+    .feature-card{background:var(--bg);padding:40px;transition:background .3s;}
+    .feature-card:hover{background:var(--surface);}
+    .feature-icon-wrap{width:48px;height:48px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:20px;}
+    .feature-title{font-size:1rem;font-weight:700;margin-bottom:10px;}
+    .feature-desc{font-size:.82rem;color:var(--muted);line-height:1.65;}
+    .cta-section{position:relative;z-index:1;padding:100px 60px;text-align:center;}
+    .cta-title{font-size:clamp(2.5rem,5vw,4.5rem);font-weight:800;letter-spacing:-.04em;margin-bottom:20px;}
+    .cta-title em{font-style:normal;color:var(--accent);}
+    .cta-sub{color:var(--muted);font-size:1rem;margin-bottom:40px;}
+    footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:30px 60px;display:flex;align-items:center;justify-content:space-between;}
+    .footer-copy{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);}
+    .footer-links{display:flex;gap:30px;}
+    .footer-links a{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);text-decoration:none;}
+    .ticker{overflow:hidden;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:10px 0;margin-bottom:80px;}
+    .ticker-inner{display:flex;gap:60px;animation:ticker 20s linear infinite;white-space:nowrap;}
+    .ticker-item{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);display:flex;align-items:center;gap:10px;}
+    .ticker-item::before{content:'▶';color:var(--accent);font-size:.5rem;}
+    @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;visibility:hidden;opacity:0;transition:.3s;}
+    .modal-overlay.active{visibility:visible;opacity:1;}
+    .modal-box{background:var(--surface);border:1px solid var(--border);padding:40px;max-width:440px;width:90%;text-align:center;}
+    .modal-box h3{font-size:1.6rem;margin-bottom:16px;color:var(--text);}
+    .modal-box p{color:var(--muted);margin-bottom:28px;line-height:1.6;font-size:.9rem;}
+    .modal-close{background:transparent;border:1px solid var(--border);color:var(--text);padding:12px 28px;font-family:'Syne',sans-serif;font-weight:600;cursor:none;transition:.2s;}
+    .modal-close:hover{border-color:var(--accent);color:var(--accent);}
+    /* Voting status banner */
+    .voting-banner{position:relative;z-index:1;text-align:center;padding:10px 60px;font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.1em;display:none;}
+    .voting-banner.open{display:block;background:rgba(16,185,129,.08);border-top:1px solid rgba(16,185,129,.2);border-bottom:1px solid rgba(16,185,129,.2);color:var(--success);}
+    .voting-banner.closed{display:block;background:rgba(239,68,68,.06);border-top:1px solid rgba(239,68,68,.15);border-bottom:1px solid rgba(239,68,68,.15);color:var(--error);}
+    @media(max-width:1100px){.hero-visual{display:none;}.steps-grid{grid-template-columns:repeat(2,1fr);}.features-grid{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:768px){nav{padding:16px 24px;}.nav-links{display:none;}.hero,.section{padding-left:24px;padding-right:24px;}.steps-grid,.features-grid{grid-template-columns:1fr;}.stats-bar{flex-direction:column;}}
+  </style>
+</head>
+<body>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- Voting Status Modal -->
+<div class="modal-overlay" id="votingModal">
+  <div class="modal-box">
+    <h3 id="modalTitle">⏳ Voting Not Open</h3>
+    <p id="modalMessage">The administrator has not opened voting yet. Please check back soon.</p>
+    <button class="modal-close" id="modalCloseBtn">OK, I understand</button>
+  </div>
+</div>
+
+<nav>
+  <a href="index.html" class="logo"><div class="logo-dot"></div>CivicChain</a>
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#features">Security</a></li>
+    <li><a href="results.html">📊 Results</a></li>
+    <li><a href="admin.html">⚙️ Admin</a></li>
+  </ul>
+  <a href="#" class="nav-cta" id="navVoteBtn">Cast Your Vote</a>
+</nav>
+
+<!-- Voting status banner (shown dynamically) -->
+<div class="voting-banner" id="votingBanner"></div>
+
+<section class="hero">
+  <div class="hero-tag" id="heroTag">
+    <span class="status-dot" id="statusDot" style="background:var(--warning)"></span>
+    Blockchain-secured · Awaiting admin setup
+  </div>
+  <h1 class="hero-title">
+    <span class="line1">DEMOCRACY</span><br>
+    <span class="line2">ON-CHAIN.</span><br>
+    <span class="line3">TAMPER-PROOF.</span>
+  </h1>
+  <p class="hero-desc">A decentralized e-voting platform where every ballot is cryptographically sealed, publicly verifiable, and permanently recorded on the blockchain. Your voice, immutably preserved.</p>
+  <div class="hero-actions">
+    <a href="#" class="btn-primary" id="heroStartVote">Start Voting</a>
+    <a href="#how" class="btn-ghost">Learn More</a>
+  </div>
+  <div class="hero-visual">
+    <div class="chain-viz">
+      <div class="block-card"><div class="block-num">BLOCK #4,829,103</div><div class="block-hash">0xa3f9...2c81</div><div class="block-votes">✓ 847 votes recorded</div></div>
+      <div class="block-card"><div class="block-num">BLOCK #4,829,104</div><div class="block-hash">0xb17e...9a42</div><div class="block-votes">✓ 1,203 votes recorded</div></div>
+      <div class="block-card"><div class="block-num">BLOCK #4,829,105</div><div class="block-hash">0xd4c2...7f13</div><div class="block-votes">✓ 991 votes recorded</div></div>
+      <div class="block-card"><div class="block-num">BLOCK #4,829,106</div><div class="block-hash">0xe8a1...3b57</div><div class="block-votes">● Processing...</div></div>
+      <div class="chain-line"></div><div class="chain-line"></div><div class="chain-line"></div>
+    </div>
+  </div>
+</section>
+
+
+<div class="ticker">
+  <div class="ticker-inner" id="ticker">
+    <span class="ticker-item">Block #4,829,106 confirmed</span>
+    <span class="ticker-item">Smart contract verified on Etherscan</span>
+    <span class="ticker-item">ZK-proof generation: 142ms avg</span>
+    <span class="ticker-item">Network validators: 1,200+ active</span>
+    <span class="ticker-item">Block #4,829,107 confirmed</span>
+    <span class="ticker-item">Gas price: 18 gwei</span>
+    <span class="ticker-item">Block #4,829,106 confirmed</span>
+    <span class="ticker-item">Smart contract verified on Etherscan</span>
+    <span class="ticker-item">ZK-proof generation: 142ms avg</span>
+    <span class="ticker-item">Network validators: 1,200+ active</span>
+  </div>
+</div>
+
+<section class="section" id="how">
+  <div class="section-header"><div><div class="section-label">Process</div><h2 class="section-title">How It Works</h2></div></div>
+  <div class="steps-grid">
+    <div class="step-card"><div class="step-num">// 01</div><div class="step-title">🔐 Authenticate</div><div class="step-desc">Verify your identity using your government-issued voter ID and OTP. Your credentials are hashed locally — we never store plain passwords.</div></div>
+    <div class="step-card"><div class="step-num">// 02</div><div class="step-title">🗳️ Cast Your Vote</div><div class="step-desc">Select your candidate from the ballot. Your choice is encrypted client-side using your unique session key before transmission.</div></div>
+    <div class="step-card"><div class="step-num">// 03</div><div class="step-title">⛓️ Blockchain Record</div><div class="step-desc">Your encrypted vote is sent to the smart contract. The transaction is mined and permanently stored on-chain.</div></div>
+    <div class="step-card"><div class="step-num">// 04</div><div class="step-title">✅ Verify Anytime</div><div class="step-desc">Use your transaction hash to independently verify your vote was counted correctly. Anyone can audit results in real time.</div></div>
+  </div>
+</section>
+
+<section class="section" id="features">
+  <div class="section-header"><div><div class="section-label">Security</div><h2 class="section-title">Built for Trust</h2></div></div>
+  <div class="features-grid">
+    <div class="feature-card"><div class="feature-icon-wrap">🔒</div><div class="feature-title">End-to-End Encryption</div><div class="feature-desc">Every vote is encrypted using AES-256 before leaving your browser. Not even election administrators can see individual choices.</div></div>
+    <div class="feature-card"><div class="feature-icon-wrap">👁️</div><div class="feature-title">Public Auditability</div><div class="feature-desc">All transactions are publicly visible on the blockchain. Independent auditors can verify results without compromising voter privacy.</div></div>
+    <div class="feature-card"><div class="feature-icon-wrap">🚫</div><div class="feature-title">Double-Vote Prevention</div><div class="feature-desc">Smart contract logic enforces one-vote-per-wallet rules. Attempting to vote twice will be automatically rejected by the network.</div></div>
+    <div class="feature-card"><div class="feature-icon-wrap">🧾</div><div class="feature-title">Immutable Records</div><div class="feature-desc">Once recorded on the blockchain, votes cannot be altered, deleted, or manipulated by any party — including platform operators.</div></div>
+    <div class="feature-card"><div class="feature-icon-wrap">🌐</div><div class="feature-title">Decentralized</div><div class="feature-desc">No single point of failure. The voting contract runs across thousands of nodes worldwide, ensuring 99.9%+ availability.</div></div>
+    <div class="feature-card"><div class="feature-icon-wrap">🪙</div><div class="feature-title">ZK-Proof Anonymity</div><div class="feature-desc">Zero-knowledge proofs ensure votes are valid without revealing voter identity. Privacy and verifiability without contradiction.</div></div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <h2 class="cta-title">Ready to make<br>your voice <em>count</em>?</h2>
+  <p class="cta-sub">Secure, verifiable, and permanent. Your vote is waiting.</p>
+  <a href="#" class="btn-primary" id="ctaVoteBtn">Log In & Vote Now</a>
+</section>
+
+<footer>
+  <div class="footer-copy">© 2026 CivicPulse — All rights reserved</div>
+  <div class="footer-links">
+    <a href="results.html">Live Results</a>
+    <a href="admin.html">Admin Panel</a>
+    <a href="login.html">Voter Login</a>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CIVICCHAIN HOME PAGE - VOTING STATUS BUG FIX
+// ═══════════════════════════════════════════════════════════════
+// ISSUE FIXED:
+// Modal was showing even though admin opened voting
+// FIX: Improved API response parsing and status logic
+// ═══════════════════════════════════════════════════════════════
+
+
+// ─────────────────────────────────────────────
+// STORAGE KEYS
+// ─────────────────────────────────────────────
+const CC_KEYS = {
+  candidates   : 'cc_candidates',
+  voters       : 'cc_voters',
+  votes        : 'cc_votes',
+  locked       : 'cc_voting_locked',
+  expiry       : 'cc_voting_expiry',
+  admins       : 'cc_admins',
+  adminSession : 'cc_admin_session',
+  voterSession : 'cc_voter_session',
+};
+
+
+// ─────────────────────────────────────────────
+// LOCAL STORAGE HELPERS
+// ─────────────────────────────────────────────
+function ccGet(key) {
+  try {
+    return JSON.parse(
+      localStorage.getItem(CC_KEYS[key])
+    );
+  } catch {
+    return null;
+  }
+}
+
+function ccSet(key, value) {
+  localStorage.setItem(
+    CC_KEYS[key],
+    JSON.stringify(value)
+  );
+}
+
+
+// ─────────────────────────────────────────────
+// API
+// ─────────────────────────────────────────────
+const API_BASE = "http://localhost:8080/api";
+
+
+// ─────────────────────────────────────────────
+// API HELPERS
+// ─────────────────────────────────────────────
+async function getData(endpoint) {
+  const response = await fetch(
+    API_BASE + endpoint,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `HTTP ${response.status}`
+    );
+  }
+
+  return await response.json();
+}
+
+
+// ─────────────────────────────────────────────
+// SAFE VOTING STATUS CHECK
+// ─────────────────────────────────────────────
+function isSafelyOpen(data) {
+  // FIX: Better handling of API response
+  if (!data || typeof data !== "object") {
+    console.warn("⚠️  Invalid data structure");
+    return false;
+  }
+
+  // Check multiple possible response formats
+  const isOpenBoolean = data.isOpen === true;
+  const isOpenString = data.status === "OPEN";
+  const isOpenAlt = data.votingOpen === true;
+  
+  const isOpen = isOpenBoolean || isOpenString || isOpenAlt;
+
+  console.log("📊 API Response Analysis:");
+  console.log("   isOpen (boolean):", isOpenBoolean);
+  console.log("   status (string):", isOpenString);
+  console.log("   votingOpen (alt):", isOpenAlt);
+  console.log("   Final result:", isOpen);
+
+  return isOpen;
+}
+
+
+// ─────────────────────────────────────────────
+// GLOBAL VOTING STATE
+// ─────────────────────────────────────────────
+let votingState = {
+  isOpen: false,
+  expiryTime: 0,
+  serverTime: 0,
+  lastFetch: 0
+};
+
+
+// ─────────────────────────────────────────────
+// SEED LOCAL DATA
+// ─────────────────────────────────────────────
+function seedData() {
+  if (!ccGet('candidates')) {
+    ccSet('candidates', []);
+  }
+
+  if (!ccGet('voters')) {
+    ccSet('voters', []);
+  }
+
+  if (!ccGet('votes')) {
+    ccSet('votes', []);
+  }
+
+  if (!ccGet('admins')) {
+    ccSet('admins', [
+      {
+        email: "admin@civicchain.com",
+        passHash: "",
+        token: ""
+      }
+    ]);
+  }
+}
+
+
+// ─────────────────────────────────────────────
+// FETCH VOTING STATUS
+// ─────────────────────────────────────────────
+async function fetchVotingStatus() {
+  try {
+    console.log("📡 Fetching voting status...");
+
+    const data = await getData('/voting/status');
+
+    console.log("🗳️ RAW API RESPONSE:", data);
+
+    // Use safe open checker
+    const isOpen = isSafelyOpen(data);
+
+    // Check expiry if available
+    const expiry = Number(data.expiryMillis || 0);
+    const now = Date.now();
+    const remaining = expiry - now;
+
+    console.log("⏱️  Expiry check:", {
+      expiry,
+      now,
+      remaining,
+      expired: remaining < -5000
+    });
+
+    // Save state
+    votingState.serverTime = Number(data.serverTime || now);
+    votingState.expiryTime = expiry;
+    votingState.lastFetch = now;
+    votingState.isOpen = isOpen;
+
+    // Auto-close if expired
+    if (isOpen && expiry > 0 && remaining < -5000) {
+      console.log("⏰ Voting expired");
+      votingState.isOpen = false;
+    }
+
+    console.log("✅ FINAL STATE:", votingState);
+
+    return votingState;
+
+  } catch (err) {
+    console.error("❌ Fetch failed:", err.message);
+    // Keep old state on error
+    return votingState;
+  }
+}
+
+
+// ─────────────────────────────────────────────
+// FORMAT REMAINING TIME
+// ─────────────────────────────────────────────
+function formatRemainingTime(ms) {
+  if (ms <= 0) {
+    return "00:00:00";
+  }
+
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+
+  return (
+    `${String(h).padStart(2, '0')}:` +
+    `${String(m).padStart(2, '0')}:` +
+    `${String(s).padStart(2, '0')}`
+  );
+}
+
+
+// ─────────────────────────────────────────────
+// UPDATE UI
+// ─────────────────────────────────────────────
+async function updateVotingUI() {
+  await fetchVotingStatus();
+
+  const open = votingState.isOpen;
+
+  console.log("🎨 Updating UI | Open:", open);
+
+  const dot = document.getElementById("statusDot");
+  const tag = document.getElementById("heroTag");
+  const banner = document.getElementById("votingBanner");
+
+  if (open) {
+    const remaining = votingState.expiryTime - Date.now();
+    const timeStr = formatRemainingTime(remaining);
+
+    if (dot) {
+      dot.style.background = "var(--success)";
+    }
+
+    if (tag) {
+      tag.innerHTML = `
+        <span class="status-dot" style="background:var(--success)"></span>
+        Voting is LIVE — closes in ${timeStr}
+      `;
+    }
+
+    if (banner) {
+      banner.className = "voting-banner open";
+      banner.textContent = `🗳️ VOTING IS OPEN — closes in ${timeStr}`;
+    }
+
+  } else {
+    if (dot) {
+      dot.style.background = "var(--error)";
+    }
+
+    if (tag) {
+      tag.innerHTML = `
+        <span class="status-dot" style="background:var(--error)"></span>
+        Voting not active
+      `;
+    }
+
+    if (banner) {
+      banner.className = "voting-banner closed";
+      banner.textContent = "🔒 Voting is currently closed";
+    }
+  }
+
+  // Update stats
+  const votes = ccGet('votes') || [];
+  const candidates = ccGet('candidates') || [];
+
+  const statVotes = document.getElementById("statVotes");
+  const statCandidates = document.getElementById("statCandidates");
+
+  if (statVotes) {
+    statVotes.innerHTML = `${votes.length}<span>+</span>`;
+  }
+
+  if (statCandidates) {
+    statCandidates.innerHTML = `${candidates.length}`;
+  }
+}
+
+
+// ─────────────────────────────────────────────
+// MODAL SETUP
+// ─────────────────────────────────────────────
+const modal = document.getElementById("votingModal");
+const modalTitle = document.getElementById("modalTitle");
+const modalMsg = document.getElementById("modalMessage");
+const modalCloseBtn = document.getElementById("modalCloseBtn");
+
+if (modalCloseBtn) {
+  modalCloseBtn.onclick = () => {
+    modal?.classList.remove("active");
+  };
+}
+
+if (modal) {
+  modal.addEventListener("click", e => {
+    if (e.target === modal) {
+      modal.classList.remove("active");
+    }
+  });
+}
+
+
+// ─────────────────────────────────────────────
+// HANDLE VOTE CLICK (FIXED)
+// ─────────────────────────────────────────────
+async function handleVoteClick(e) {
+  e.preventDefault();
+
+  try {
+    console.log("🖱️ Vote button clicked");
+
+    // DIRECT API CHECK
+    const data = await getData('/voting/status');
+
+    console.log("🗳️ DIRECT API CHECK:", data);
+
+    // FIX: Use the safe checker function
+    const open = isSafelyOpen(data);
+
+    console.log("✅ Voting open?", open);
+
+    if (open) {
+      console.log("✅ PROCEEDING TO LOGIN");
+      window.location.href = "login.html";
+    } else {
+      console.log("❌ SHOWING MODAL");
+      
+      if (modalTitle) {
+        modalTitle.textContent = "🔒 Voting Not Open";
+      }
+
+      if (modalMsg) {
+        modalMsg.textContent =
+          "The election administrator has not opened voting yet. Please check back soon.";
+      }
+
+      modal?.classList.add("active");
+    }
+
+  } catch (err) {
+    console.error("Vote click error:", err);
+    alert("Failed to check voting status: " + err.message);
+  }
+}
+
+
+// ─────────────────────────────────────────────
+// ATTACH BUTTONS
+// ─────────────────────────────────────────────
+[
+  "navVoteBtn",
+  "heroStartVote",
+  "ctaVoteBtn"
+].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener("click", handleVoteClick);
+  }
+});
+
+
+// ─────────────────────────────────────────────
+// CURSOR EFFECT
+// ─────────────────────────────────────────────
+function initCursor() {
+  const cursor = document.getElementById("cursor");
+  const ring = document.getElementById("cursorRing");
+
+  if (!cursor || !ring) {
+    return;
+  }
+
+  let mouseX = window.innerWidth / 2;
+  let mouseY = window.innerHeight / 2;
+  let ringX = mouseX;
+  let ringY = mouseY;
+
+  document.addEventListener("mousemove", e => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    cursor.style.transform =
+      `translate(${mouseX - 6}px, ${mouseY - 6}px)`;
+  });
+
+  function animateRing() {
+    ringX += (mouseX - ringX) * 0.18;
+    ringY += (mouseY - ringY) * 0.18;
+
+    ring.style.transform =
+      `translate(${ringX - 18}px, ${ringY - 18}px)`;
+
+    requestAnimationFrame(animateRing);
+  }
+
+  animateRing();
+
+  document
+    .querySelectorAll("a, button")
+    .forEach(el => {
+      el.addEventListener("mouseenter", () => {
+        ring.style.width = "56px";
+        ring.style.height = "56px";
+      });
+
+      el.addEventListener("mouseleave", () => {
+        ring.style.width = "36px";
+        ring.style.height = "36px";
+      });
+    });
+}
+
+
+// ─────────────────────────────────────────────
+// STORAGE SYNC
+// ─────────────────────────────────────────────
+window.addEventListener("storage", e => {
+  if (
+    e.key === CC_KEYS.locked ||
+    e.key === CC_KEYS.expiry
+  ) {
+    console.log("🔄 Storage sync event");
+    updateVotingUI();
+  }
+});
+
+
+// ─────────────────────────────────────────────
+// TAB VISIBILITY REFRESH
+// ─────────────────────────────────────────────
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    console.log("👁️ Tab visible - refreshing");
+    updateVotingUI();
+  }
+});
+
+
+// ─────────────────────────────────────────────
+// INITIALIZATION
+// ─────────────────────────────────────────────
+window.addEventListener("DOMContentLoaded", async () => {
+  console.log("🚀 Home page initialized");
+
+  seedData();
+  initCursor();
+
+  // Initial fetch
+  await updateVotingUI();
+
+  // Poll every 2 seconds
+  setInterval(async () => {
+    await updateVotingUI();
+  }, 2000);
+});
+
+</script>
+</body>
+</html>

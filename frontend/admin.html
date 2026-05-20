@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CivicChain — Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#030712;--surface:#0d1117;--surface2:#111827;--border:#1e2936;--accent:#00e5ff;--text:#e2e8f0;--muted:#64748b;--success:#10b981;--error:#ef4444;--warning:#f59e0b;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;cursor:none;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;}
+  .cursor{width:12px;height:12px;background:var(--accent);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9999;mix-blend-mode:difference;}
+  .cursor-ring{width:36px;height:36px;border:1px solid var(--accent);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9998;opacity:.4;}
+  /* TOPBAR */
+  .topbar{position:sticky;top:0;z-index:100;background:rgba(3,7,18,.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:64px;display:none;}
+  .topbar.show{display:flex;}
+  .logo{font-size:1.1rem;font-weight:800;color:var(--text);text-decoration:none;display:flex;align-items:center;gap:10px;}
+  .logo-dot{width:9px;height:9px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,.4)}50%{box-shadow:0 0 0 10px rgba(0,229,255,0)}}
+  .topbar-right{display:flex;gap:16px;align-items:center;}
+  .nav-link{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted);text-decoration:none;letter-spacing:.1em;transition:color .2s;}
+  .nav-link:hover{color:var(--accent);}
+  .admin-status{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--success);}
+  .logout-btn{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted);padding:7px 14px;border:1px solid var(--border);border-radius:4px;background:transparent;cursor:pointer;transition:all .2s;}
+  .logout-btn:hover{color:var(--error);border-color:var(--error);}
+  /* MAIN */
+  .main{padding:40px;max-width:1400px;margin:0 auto;min-height:calc(100vh - 64px);position:relative;z-index:1;}
+  /* LOGIN */
+  .login-section,.dashboard{display:none;}
+  .login-section.active,.dashboard.active{display:block;}
+  .login-container{max-width:420px;margin:100px auto 0;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:48px;animation:slideUp .5s ease;}
+  @keyframes slideUp{from{opacity:0;transform:translateY(30px)}}
+  .login-title{font-size:2rem;font-weight:800;text-align:center;margin-bottom:8px;letter-spacing:-.03em;}
+  .login-sub{color:var(--muted);text-align:center;margin-bottom:36px;font-size:.9rem;font-weight:400;}
+  .field{position:relative;margin-bottom:20px;}
+  .field-label{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:8px;display:block;}
+  .field-wrap{position:relative;}
+  .field-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:.95rem;pointer-events:none;}
+  input,select{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.9rem;padding:13px 13px 13px 42px;border-radius:6px;transition:all .2s;outline:none;}
+  input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,229,255,.08);}
+  .btn{width:100%;padding:14px;font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;letter-spacing:.08em;text-transform:uppercase;border:none;border-radius:6px;cursor:pointer;transition:all .2s;display:flex;justify-content:center;align-items:center;gap:8px;}
+  .btn-primary{background:var(--accent);color:var(--bg);}
+  .btn-primary:hover{box-shadow:0 0 30px rgba(0,229,255,.35);transform:translateY(-1px);}
+  .btn-danger{background:var(--error);color:#fff;}
+  .btn-success{background:var(--success);color:var(--bg);}
+  .spinner{width:18px;height:18px;border:2px solid rgba(0,0,0,.15);border-top-color:var(--bg);border-radius:50%;animation:spin .7s linear infinite;display:none;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  /* VOTING CONTROL */
+  .voting-control{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:28px;}
+  .status-badge{padding:7px 18px;border-radius:40px;font-weight:700;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}
+  .status-badge.open{background:rgba(16,185,129,.15);color:var(--success);border:1px solid var(--success);}
+  .status-badge.locked{background:rgba(239,68,68,.15);color:var(--error);border:1px solid var(--error);}
+  .timer-display{font-size:1.8rem;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--accent);letter-spacing:2px;}
+  .control-buttons{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .ctrl-btn{padding:10px 20px;font-family:'Syne',sans-serif;font-weight:700;font-size:.75rem;text-transform:uppercase;border:none;border-radius:6px;cursor:pointer;transition:all .2s;}
+  .ctrl-btn.lock{background:var(--error);color:#fff;}
+  .ctrl-btn.unlock{background:var(--success);color:var(--bg);}
+  .time-input{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;padding:10px 12px;border-radius:6px;width:120px;text-align:center;font-size:.85rem;}
+  /* TABS */
+  .tab-nav{display:flex;border-bottom:1px solid var(--border);margin-bottom:28px;}
+  .tab-btn{flex:1;padding:14px 20px;font-family:'JetBrains Mono',monospace;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;transition:all .2s;}
+  .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(0,229,255,.04);}
+  .tab-content{display:none;}
+  .tab-content.active{display:block;animation:fadeIn .25s;}
+  @keyframes fadeIn{from{opacity:0}}
+  /* TABLE */
+  .crud-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px;}
+  .card-header{padding:16px 28px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+  .card-title{font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;}
+  .add-btn-inline{padding:7px 16px;background:var(--accent);color:var(--bg);border:none;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:.7rem;font-weight:700;cursor:pointer;letter-spacing:.1em;}
+  .table-wrap{max-height:420px;overflow-y:auto;}
+  .trow{display:grid;gap:8px;padding:16px 28px;border-bottom:1px solid var(--border);align-items:center;font-size:.82rem;}
+  .trow:last-child{border-bottom:none;}
+  .trow:hover{background:rgba(0,229,255,.02);}
+  .trow.header{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;padding:10px 28px;background:var(--surface);}
+  .action-btn{padding:5px 10px;font-size:.65rem;border-radius:4px;cursor:pointer;font-family:'JetBrains Mono',monospace;border:none;font-weight:600;}
+  .edit-btn{background:var(--accent);color:var(--bg);}
+  .del-btn{background:var(--error);color:#fff;margin-left:4px;}
+  /* UPLOAD */
+  .upload-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 28px;margin-bottom:20px;}
+  .upload-title{font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--accent);letter-spacing:.15em;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+  .upload-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .file-btn{display:inline-flex;align-items:center;gap:8px;background:var(--surface2);border:1px dashed var(--border);padding:11px 18px;border-radius:6px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--muted);transition:all .2s;}
+  .file-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .upload-preview{margin-top:10px;font-size:.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+  .sample-link{color:var(--accent);cursor:pointer;font-size:.72rem;font-family:'JetBrains Mono',monospace;text-decoration:underline;}
+  /* MODAL */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(3,7,18,.88);backdrop-filter:blur(12px);z-index:1000;align-items:center;justify-content:center;padding:24px;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:36px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+  .modal-title{font-size:1.5rem;font-weight:800;margin-bottom:22px;letter-spacing:-.02em;}
+  .mfield{margin-bottom:18px;}
+  .mfield label{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;display:block;margin-bottom:7px;}
+  .mfield input,.mfield select{padding:12px 14px;border-radius:6px;}
+  .modal-actions{display:flex;gap:12px;margin-top:24px;}
+  .modal-btn{flex:1;padding:13px;font-weight:700;border-radius:6px;cursor:pointer;font-family:'Syne',sans-serif;font-size:.85rem;letter-spacing:.06em;text-transform:uppercase;border:none;transition:all .2s;}
+  .modal-save{background:var(--success);color:var(--bg);}
+  .modal-cancel{background:transparent;color:var(--muted);border:1px solid var(--border)!important;}
+  .modal-cancel:hover{color:var(--text);border-color:var(--text)!important;}
+  /* ALERT TOAST */
+  .toast{position:fixed;top:76px;right:20px;z-index:9999;padding:14px 20px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:.78rem;pointer-events:none;animation:toastIn .3s ease;}
+  .toast.s{background:rgba(16,185,129,.12);border:1px solid var(--success);color:var(--success);}
+  .toast.e{background:rgba(239,68,68,.12);border:1px solid var(--error);color:var(--error);}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+  .empty-row{padding:40px;text-align:center;color:var(--muted);font-size:.85rem;}
+  /* candidates grid cols */
+  .cand-row{grid-template-columns:2fr 1.5fr 60px 60px 120px;}
+  .voter-row{grid-template-columns:1.2fr 1.8fr 1.2fr 1.4fr 120px;}
+  .vote-row{grid-template-columns:1.5fr 1.8fr 1.4fr 1.2fr 80px;}
+  @media(max-width:768px){.main{padding:20px;}.voting-control{flex-direction:column;}.trow.cand-row,.trow.voter-row,.trow.vote-row{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- TOPBAR -->
+<div class="topbar" id="topbar">
+  <a href="index.html" class="logo"><div class="logo-dot"></div>CivicChain Admin</a>
+  <div class="topbar-right">
+    <a href="index.html" class="nav-link">🏠 Home</a>
+    <a href="results.html" class="nav-link">📊 Results</a>
+    <span class="admin-status" id="adminEmail">--</span>
+    <button class="logout-btn" onclick="doLogout()">Logout</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- LOGIN SECTION -->
+  <div class="login-section active" id="loginSection">
+    <div class="login-container">
+      <h1 class="login-title">Admin Login</h1>
+      <p class="login-sub">Secure access to election management dashboard<br><span style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--accent)">admin@civicchain.com / password</span></p>
+      <div id="loginAlert" style="display:none;padding:12px 14px;border-radius:6px;margin-bottom:16px;font-family:'JetBrains Mono',monospace;font-size:.78rem;"></div>
+      <form id="loginForm">
+        <div class="field">
+          <label class="field-label">Email</label>
+          <div class="field-wrap">
+            <span class="field-icon">📧</span>
+            <input type="email" id="loginEmail" placeholder="admin@civicchain.com" required>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Password</label>
+          <div class="field-wrap">
+            <span class="field-icon">🔒</span>
+            <input type="password" id="loginPass" placeholder="password" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <span id="loginText">Access Dashboard</span>
+          <span class="spinner" id="loginSpinner"></span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="dashboard" id="dashboard">
+
+    <!-- VOTING CONTROL PANEL -->
+    <div class="voting-control">
+      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+        <span class="status-badge locked" id="statusBadge">🔒 VOTING LOCKED</span>
+        <div class="timer-display" id="timerDisplay">--:--:--</div>
+      </div>
+      <div class="control-buttons">
+        <button class="ctrl-btn lock" onclick="doLockVoting()">🔒 Lock Voting</button>
+        <input type="number" id="timerMinutes" class="time-input" placeholder="Minutes" value="30" min="1" max="720">
+        <button class="ctrl-btn unlock" onclick="doOpenVoting()">🔓 Open Voting for (min)</button>
+        <button class="ctrl-btn" style="background:#f59e0b;color:#000" onclick="resetSystem()">♻ Reset System</button>
+        <button class="ctrl-btn" style="background:#06b6d4;color:#000" onclick="resetVotes()">🗳 Reset Votes</button>
+        <button class="ctrl-btn" style="background:#8b5cf6;color:#fff" onclick="resetCandidates()">🗳 Reset Candidates</button>
+        <button class="ctrl-btn" style="background:#ef4444;color:#fff" onclick="resetVoters()">👥 Reset Voters</button>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tab-nav">
+      <button class="tab-btn active" data-tab="candidates">Candidates</button>
+      <button class="tab-btn" data-tab="voters">Voters</button>
+      <button class="tab-btn" data-tab="votes">Recorded Votes</button>
+    </div>
+
+    <!-- CANDIDATES TAB -->
+    <div class="tab-content active" id="tab-candidates">
+      <div class="crud-card">
+        <div class="card-header">
+          <span class="card-title">Candidates</span>
+          <button class="add-btn-inline" onclick="openModal('candidate')">+ Add Candidate</button>
+        </div>
+        <div class="trow header cand-row">
+          <span>Name</span><span>Party</span><span>Emoji</span><span>Color</span><span>Actions</span>
+        </div>
+        <div class="table-wrap" id="candidatesBody"></div>
+      </div>
+    </div>
+
+    <!-- VOTERS TAB -->
+    <div class="tab-content" id="tab-voters">
+      <div class="upload-box">
+        <div class="upload-title">📂 Bulk Import Voters &nbsp; <span class="sample-link" onclick="downloadSample()">📥 Download Sample CSV</span></div>
+        <div class="upload-row">
+          <input type="file" id="voterFile" accept=".csv,.xlsx,.xls" style="display:none" onchange="previewFile(this)">
+          <button class="file-btn" onclick="document.getElementById('voterFile').click()">📁 Choose CSV / Excel</button>
+          <button class="ctrl-btn unlock" style="padding:10px 18px" onclick="importVoters()">⬆ Import</button>
+        </div>
+        <div class="upload-preview" id="uploadPreview">Required columns: VoterID, Name, DOB, PhoneNumber</div>
+      </div>
+      <div class="crud-card">
+        <div class="card-header">
+          <span class="card-title">Registered Voters</span>
+          <button class="add-btn-inline" onclick="openModal('voter')">+ Add Voter</button>
+        </div>
+        <div class="trow header voter-row">
+          <span>Voter ID</span><span>Name</span><span>DOB</span><span>Phone</span><span>Actions</span>
+        </div>
+        <div class="table-wrap" id="votersBody"></div>
+      </div>
+    </div>
+
+    <!-- VOTES TAB -->
+    <div class="tab-content" id="tab-votes">
+      <div class="crud-card">
+        <div class="card-header">
+          <span class="card-title">Recorded Votes</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted)">Immutable blockchain records</span>
+        </div>
+        <div class="trow header vote-row">
+          <span>Voter ID</span><span>Candidate</span><span>Timestamp</span><span>TX Hash</span><span>Block</span>
+        </div>
+        <div class="table-wrap" id="votesBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CANDIDATE/VOTER MODAL -->
+<div class="modal-overlay" id="crudModal">
+  <div class="modal">
+    <h2 class="modal-title" id="modalTitle">Add</h2>
+    <!-- Candidate fields -->
+    <div id="candidateFields">
+      <div class="mfield"><label>Candidate ID</label><input type="text" id="f_cand_candid" placeholder="CAND001"></div>
+      <div class="mfield"><label>Name</label><input type="text" id="f_cand_name" placeholder="Full name"></div>
+      <div class="mfield"><label>Party</label><input type="text" id="f_cand_party" placeholder="Party / Alliance"></div>
+      <div class="mfield"><label>Emoji</label><input type="text" id="f_cand_emoji" placeholder="🎓" maxlength="2"></div>
+      <div class="mfield"><label>Color (hex)</label><input type="text" id="f_cand_color" placeholder="#3b82f6"></div>
+      <div class="mfield"><label>Tag (e.g. Education · Tech)</label><input type="text" id="f_cand_tag" placeholder="Category · Category"></div>
+    </div>
+    <!-- Voter fields -->
+    <div id="voterFields" style="display:none">
+      <div class="mfield"><label>Voter ID</label><input type="text" id="f_v_id" placeholder="VOT1001"></div>
+      <div class="mfield"><label>Full Name</label><input type="text" id="f_v_name" placeholder="Full name"></div>
+      <div class="mfield"><label>Date of Birth (YYYY-MM-DD)</label><input type="text" id="f_v_dob" placeholder="1990-05-12"></div>
+      <div class="mfield"><label>Phone Number</label><input type="text" id="f_v_phone" placeholder="9876543210"></div>
+      <div class="mfield"><label>Emoji</label><input type="text" id="f_v_emoji" placeholder="👤" maxlength="2"></div>
+    </div>
+    <input type="hidden" id="f_editId">
+    <div class="modal-actions">
+      <button class="modal-btn modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn modal-save" onclick="saveItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal" style="text-align:center;max-width:380px">
+    <div style="font-size:3rem;margin-bottom:16px">🗑️</div>
+    <h2 class="modal-title">Confirm Delete</h2>
+    <p style="color:var(--muted);margin-bottom:28px;font-size:.9rem;font-weight:400">This action cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="modal-btn modal-cancel" onclick="closeDeleteModal()">Cancel</button>
+      <button class="modal-btn" style="background:var(--error);color:#fff" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+<!-- ADMIN LOCK OVERLAY -->
+<div id="adminLockOverlay" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(3,7,18,0.95);
+  backdrop-filter:blur(10px);
+  z-index:2000;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+">
+  <div style="
+    background:#0d1117;
+    border:1px solid #1e2936;
+    padding:40px;
+    border-radius:12px;
+    max-width:400px;
+  ">
+    <h2 style="margin-bottom:10px;color:#00e5ff;">🔒 Admin Access Locked</h2>
+    <p style="color:#94a3b8;font-size:0.9rem;">
+      Voting is currently in progress.<br>
+      Admin access will be restored after voting ends.
+    </p>
+  </div>
+</div>
+<script src="js/admin.js"></script>
+</body>
+</html>

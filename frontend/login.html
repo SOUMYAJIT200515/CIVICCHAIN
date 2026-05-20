@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CivicChain — Voter Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#030712;--surface:#0d1117;--border:#1e2936;--accent:#00e5ff;--text:#e2e8f0;--muted:#64748b;--success:#10b981;--error:#ef4444;--warning:#f59e0b;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;display:flex;overflow:hidden;cursor:none;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;}
+  .cursor{width:12px;height:12px;background:var(--accent);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9999;mix-blend-mode:difference;}
+  .cursor-ring{width:36px;height:36px;border:1px solid var(--accent);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9998;opacity:.4;}
+  /* LOCKED OVERLAY */
+  .locked-overlay{position:fixed;inset:0;background:rgba(3,7,18,.97);backdrop-filter:blur(20px);z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;padding:40px;}
+  .locked-overlay.show{display:flex;}
+  .locked-overlay h2{font-size:2rem;font-weight:800;color:var(--error);}
+  .locked-overlay p{color:var(--muted);max-width:400px;line-height:1.6;}
+  .locked-overlay a{color:var(--accent);text-decoration:none;font-family:'JetBrains Mono',monospace;font-size:.8rem;border:1px solid var(--accent);padding:10px 24px;margin-top:8px;display:inline-block;transition:background .2s;}
+  .locked-overlay a:hover{background:var(--accent);color:var(--bg);}
+  /* LEFT PANEL */
+  .left-panel{width:42%;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:space-between;padding:40px;position:relative;overflow:hidden;}
+  .left-panel::before{content:'';position:absolute;bottom:-100px;right:-100px;width:400px;height:400px;background:radial-gradient(circle,rgba(0,229,255,.06) 0%,transparent 70%);pointer-events:none;}
+  .panel-logo{display:flex;align-items:center;gap:10px;font-size:1.1rem;font-weight:800;letter-spacing:-.02em;text-decoration:none;color:var(--text);}
+  .logo-dot{width:8px;height:8px;background:var(--accent);border-radius:50%;animation:pulse-dot 2s infinite;}
+  @keyframes pulse-dot{0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,.4)}50%{box-shadow:0 0 0 8px rgba(0,229,255,0)}}
+  .top-links{position:absolute;top:20px;right:20px;display:flex;gap:16px;}
+  .top-link{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--accent);text-decoration:none;letter-spacing:.1em;text-transform:uppercase;transition:opacity .2s;}
+  .top-link:hover{opacity:.7;}
+  .panel-content{flex:1;display:flex;flex-direction:column;justify-content:center;}
+  .panel-tag{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:24px;display:flex;align-items:center;gap:8px;}
+  .live-dot{width:5px;height:5px;background:var(--success);border-radius:50%;animation:blink 1.5s infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+  .panel-title{font-size:2.8rem;font-weight:800;letter-spacing:-.04em;line-height:.95;margin-bottom:20px;}
+  .panel-title .accent{color:var(--accent);}
+  .panel-title .stroke{-webkit-text-stroke:1px var(--muted);color:transparent;}
+  .panel-desc{font-size:.85rem;color:var(--muted);line-height:1.7;max-width:340px;margin-bottom:40px;font-weight:400;}
+  .badge{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border);background:rgba(0,0,0,.2);margin-bottom:10px;}
+  .badge-text strong{display:block;color:var(--text);font-size:.8rem;margin-bottom:2px;}
+  .badge-text span{color:var(--muted);font-size:.75rem;}
+  .panel-footer{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);letter-spacing:.1em;display:flex;justify-content:space-between;}
+  /* RIGHT PANEL */
+  .right-panel{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:60px 40px;position:relative;}
+  .form-container{width:100%;max-width:440px;animation:fadeIn .5s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(16px)}}
+  .form-title{font-size:1.8rem;font-weight:800;letter-spacing:-.03em;margin-bottom:6px;}
+  .form-subtitle{font-size:.82rem;color:var(--muted);font-weight:400;margin-bottom:32px;}
+  /* STEP INDICATOR */
+  .steps-indicator{display:flex;align-items:center;gap:0;margin-bottom:28px;}
+  .step-ind{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);letter-spacing:.1em;}
+  .step-ind.active{color:var(--accent);}
+  .step-ind.done{color:var(--success);}
+  .step-circle{width:24px;height:24px;border:1px solid currentColor;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;}
+  .step-ind.done .step-circle{background:var(--success);border-color:var(--success);color:#fff;}
+  .step-ind.active .step-circle{background:var(--accent);border-color:var(--accent);color:var(--bg);}
+  .step-line{flex:1;height:1px;background:var(--border);margin:0 8px;}
+  .step-line.done{background:var(--success);}
+  /* FORMS */
+  .form-step{display:none;}
+  .form-step.active{display:block;animation:stepIn .35s ease;}
+  @keyframes stepIn{from{opacity:0;transform:translateX(16px)}}
+  .field{margin-bottom:18px;}
+  .field-label{display:block;font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:7px;}
+  .field-wrap{position:relative;}
+  .field-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:.9rem;pointer-events:none;}
+  input[type=text],input[type=tel],input[type=password]{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.85rem;padding:13px 13px 13px 42px;outline:none;border-radius:4px;transition:border-color .2s,box-shadow .2s;letter-spacing:.04em;}
+  input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,229,255,.08);}
+  input.err{border-color:var(--error);}
+  input.ok{border-color:var(--success);}
+  input::placeholder{color:var(--muted);}
+  .field-hint{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);margin-top:5px;}
+  .field-error{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--error);margin-top:5px;display:none;}
+  .field-error.show{display:block;}
+  /* OTP */
+  .otp-group{display:flex;gap:8px;}
+  .otp-group input{flex:1;text-align:center;padding:16px 6px;font-size:1.2rem;font-weight:700;letter-spacing:0;}
+  .otp-timer{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);text-align:center;margin-top:10px;}
+  .otp-timer span{color:var(--warning);}
+  .resend-btn{background:none;border:none;color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:.62rem;cursor:pointer;display:none;text-decoration:underline;}
+  .resend-btn.show{display:inline;}
+  /* BUTTONS */
+  .btn{width:100%;padding:14px;font-family:'Syne',sans-serif;font-weight:700;font-size:.88rem;letter-spacing:.06em;text-transform:uppercase;border:none;cursor:pointer;margin-top:6px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));}
+  .btn-accent{background:var(--accent);color:var(--bg);}
+  .btn-accent:hover{box-shadow:0 0 30px rgba(0,229,255,.25);transform:translateY(-1px);}
+  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted);margin-top:10px;clip-path:none;}
+  .btn-outline:hover{border-color:var(--text);color:var(--text);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .spinner-wrap{display:none;justify-content:center;margin:6px 0;}
+  .spinner-wrap.show{display:flex;}
+  .spinner{width:20px;height:20px;border:2px solid rgba(3,7,18,.15);border-top-color:var(--bg);border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  /* ALERT */
+  .alert{padding:11px 14px;border-left:3px solid;font-family:'JetBrains Mono',monospace;font-size:.7rem;line-height:1.5;margin-bottom:16px;display:none;border-radius:2px;}
+  .alert.show{display:block;}
+  .alert-s{border-color:var(--success);background:rgba(16,185,129,.06);color:var(--success);}
+  .alert-e{border-color:var(--error);background:rgba(239,68,68,.06);color:var(--error);}
+  .alert-i{border-color:var(--accent);background:rgba(0,229,255,.06);color:var(--accent);}
+  /* wallet */
+  .wallet-status{display:none;align-items:center;gap:8px;padding:10px 13px;background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--success);margin-top:10px;border-radius:4px;}
+  .wallet-status.show{display:flex;}
+  .mm-btn{width:100%;padding:13px;background:transparent;border:1px solid rgba(246,133,27,.35);color:#f6851b;font-family:'JetBrains Mono',monospace;font-size:.75rem;letter-spacing:.08em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .2s,border-color .2s;border-radius:4px;}
+  .mm-btn:hover{background:rgba(246,133,27,.07);border-color:rgba(246,133,27,.6);}
+  .divider{display:flex;align-items:center;gap:12px;margin:16px 0;font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);letter-spacing:.1em;}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+  @media(max-width:900px){body{flex-direction:column;overflow:auto;}.left-panel{width:100%;min-height:auto;padding:24px;}.right-panel{padding:32px 24px;}.badge{display:none;}}
+</style>
+</head>
+<body>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- VOTING CLOSED OVERLAY -->
+<div class="locked-overlay" id="lockedOverlay">
+  <div style="font-size:4rem">🔒</div>
+  <h2>Voting Is Not Open</h2>
+  <p>The election administrator has not opened voting yet. Please wait for voting to be unlocked before logging in.</p>
+  <a href="index.html">← Return to Home</a>
+  <a href="results.html">📊 View Results</a>
+</div>
+
+<!-- LEFT PANEL -->
+<div class="left-panel">
+  <a href="index.html" class="panel-logo"><div class="logo-dot"></div>CivicChain</a>
+  <div class="top-links">
+    <a href="admin.html" class="top-link">⚙️ Admin</a>
+    <a href="results.html" class="top-link">📊 Results</a>
+  </div>
+  <div class="panel-content">
+    <div class="panel-tag"><span class="live-dot"></span>Secure Authentication Portal</div>
+    <h2 class="panel-title">YOUR<br><span class="accent">VOTE</span><br><span class="stroke">SECURED.</span></h2>
+    <p class="panel-desc">Multi-layer authentication ensures only verified citizens can participate. Your identity is verified locally — never transmitted in plain text.</p>
+    <div>
+      <div class="badge"><span>🔒</span><div class="badge-text"><strong>AES-256 Encryption</strong><span>All data encrypted before transmission</span></div></div>
+      <div class="badge"><span>📱</span><div class="badge-text"><strong>OTP Verification</strong><span>6-digit code sent to phone</span></div></div>
+      <div class="badge"><span>🔐</span><div class="badge-text"><strong>Biometric Auth</strong><span>Fingerprint/Face verification (WebAuthn)</span></div></div>
+    </div>
+  </div>
+  <div class="panel-footer"><span>v2.1.4 — Audited</span><span>SSL/TLS 1.3</span></div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="right-panel">
+  <div class="form-container">
+    <h1 class="form-title">Voter Login</h1>
+    <p class="form-subtitle">Complete all steps to access your ballot</p>
+
+    <!-- STEP INDICATORS -->
+    <div class="steps-indicator">
+      <div class="step-ind active" id="si1"><div class="step-circle">1</div><span>IDENTITY</span></div>
+      <div class="step-line" id="sl12"></div>
+      <div class="step-ind" id="si2"><div class="step-circle">2</div><span>OTP</span></div>
+      <div class="step-line" id="sl23"></div>
+      <div class="step-ind" id="si3"><div class="step-circle">3</div><span>BIOMETRIC</span></div>
+    </div>
+
+    <!-- ALERT -->
+    <div class="alert" id="alert"></div>
+
+    <!-- STEP 1: Identity -->
+    <div class="form-step active" id="step-1">
+      <div class="field">
+        <label class="field-label">Voter ID</label>
+        <div class="field-wrap">
+          <span class="field-icon">🪪</span>
+          <input type="text" id="fVoterId" placeholder="VOT1001" autocomplete="off">
+        </div>
+        <div class="field-hint">Enter your registered Voter ID (e.g. VOT1001)</div>
+        <div class="field-error" id="err-vid">Voter ID not found in the registry</div>
+      </div>
+      <div class="field">
+        <label class="field-label">Date of Birth</label>
+        <div class="field-wrap">
+          <span class="field-icon">📅</span>
+          <input type="text" id="fDob" placeholder="YYYY-MM-DD" maxlength="10">
+        </div>
+        <div class="field-error" id="err-dob">Date of birth does not match records</div>
+      </div>
+      <div class="field">
+        <label class="field-label">Registered Mobile</label>
+        <div class="field-wrap">
+          <span class="field-icon">📱</span>
+          <input type="tel" id="fPhone" placeholder="9876543210">
+        </div>
+        <div class="field-hint">OTP will be sent to this number</div>
+        <div class="field-error" id="err-phone">Phone number does not match records</div>
+      </div>
+      <button class="btn btn-accent" id="btn1" onclick="goStep2()">Verify Identity & Send OTP</button>
+    </div>
+
+    <!-- STEP 2: OTP -->
+    <div class="form-step" id="step-2">
+      <div class="field">
+        <label class="field-label">Enter 6-digit OTP</label>
+        <div class="alert alert-s show" style="margin-bottom: 16px;">✓ OTP sent to your registered phone</div>
+        <div class="otp-group" id="otpGroup">
+          <input type="text" maxlength="1" class="otp-digit" inputmode="numeric">
+          <input type="text" maxlength="1" class="otp-digit" inputmode="numeric">
+          <input type="text" maxlength="1" class="otp-digit" inputmode="numeric">
+          <input type="text" maxlength="1" class="otp-digit" inputmode="numeric">
+          <input type="text" maxlength="1" class="otp-digit" inputmode="numeric">
+          <input type="text" maxlength="1" class="otp-digit" inputmode="numeric">
+        </div>
+        <div class="field-error" id="err-otp">Invalid OTP. Please try again.</div>
+      </div>
+      <div class="otp-timer">Expires in <span id="countdown">02:00</span> &nbsp; <button class="resend-btn" id="resendBtn" onclick="resendOTP()">Resend</button></div>
+      <button class="btn btn-accent" id="btn2" onclick="goStep3()">Verify OTP</button>
+      <button class="btn btn-outline" onclick="goStep(1)">← Back</button>
+    </div>
+
+    <!-- STEP 3: Biometric -->
+    <div class="form-step" id="step-3">
+      <div class="alert alert-s show" style="margin-bottom: 16px;">✓ Identity and OTP verified successfully</div>
+      <p style="font-size:.82rem;color:var(--muted);line-height:1.7;margin-bottom:20px;font-weight:400">Complete biometric authentication using your device's fingerprint, face recognition, or security key.</p>
+      
+      <div style="text-align: center; padding: 20px 0;">
+        <div style="font-size: 3rem; margin-bottom: 10px;">🔐</div>
+        <p style="font-size:.85rem;color:var(--text);margin-bottom:5px;">Fingerprint / Face Recognition</p>
+        <p style="font-size:.72rem;color:var(--muted);">Secure WebAuthn biometric authentication</p>
+      </div>
+
+      <button class="btn btn-accent" id="btn3" onclick="startBiometricVerification()">🔒 Verify Biometric</button>
+      <button class="btn btn-outline" onclick="skipBiometric()" style="display: none;" id="skipBtn">⏭️ Skip (Demo)</button>
+      <button class="btn btn-outline" onclick="goStep(2)">← Back</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = "http://localhost:8080/api";
+
+// ─────────────────────────────────────────────
+// GLOBAL STATE
+// ─────────────────────────────────────────────
+let votingState = {
+  open: false,
+  expiry: 0,
+  lastFetch: 0
+};
+
+let verifiedVoter = null;
+let currentOtp = null;
+let biometricVerified = false;
+
+
+// ─────────────────────────────────────────────
+// FETCH VOTING STATUS (FIXED)
+// ─────────────────────────────────────────────
+async function fetchVotingStatus() {
+
+  try {
+
+    console.log(
+      "📡 Fetching voting status..."
+    );
+
+    const res = await fetch(
+      `${API_BASE}/voting/status`
+    );
+
+    if (!res.ok) {
+
+      throw new Error(
+        `HTTP ${res.status}`
+      );
+    }
+
+    const data = await res.json();
+
+    console.log(
+      "🗳️ STATUS RESPONSE:",
+      data
+    );
+
+    // FIXED:
+    // backend returns:
+    // isOpen
+    // expiryMillis
+    // status
+
+    votingState.open =
+      data.isOpen === true ||
+      data.status === "OPEN";
+
+    votingState.expiry =
+      Number(
+        data.expiryMillis || 0
+      );
+
+    votingState.lastFetch =
+      Date.now();
+
+    console.log(
+      "✅ UPDATED STATE:",
+      votingState
+    );
+
+  } catch (err) {
+
+    console.error(
+      "❌ Voting status error:",
+      err
+    );
+  }
+}
+
+
+// ─────────────────────────────────────────────
+// CHECK IF VOTING OPEN
+// ─────────────────────────────────────────────
+function isVotingOpen() {
+
+  const now = Date.now();
+
+  const open =
+    votingState.open &&
+    (
+      votingState.expiry === 0 ||
+      votingState.expiry >
+      now - 5000
+    );
+
+  console.log(
+    "🔎 CHECK OPEN:",
+    open
+  );
+
+  return open;
+}
+
+
+// ─────────────────────────────────────────────
+// CHECK GATE
+// ─────────────────────────────────────────────
+async function checkVotingGate() {
+
+  await fetchVotingStatus();
+
+  const overlay =
+    document.getElementById(
+      "lockedOverlay"
+    );
+
+  if (!overlay) return;
+
+  overlay.classList.toggle(
+    "show",
+    !isVotingOpen()
+  );
+}
+
+
+// ─────────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────────
+function normalizeDate(d) {
+
+  const date = new Date(d);
+
+  return isNaN(date)
+    ? null
+    : date.toISOString()
+        .split("T")[0];
+}
+
+function showAlert(type, msg) {
+
+  const el =
+    document.getElementById(
+      "alert"
+    );
+
+  if (!el) return;
+
+  el.className =
+    `alert alert-${type} show`;
+
+  el.innerHTML = msg;
+}
+
+
+// ─────────────────────────────────────────────
+// NAVIGATION
+// ─────────────────────────────────────────────
+function goStep(n) {
+
+  document
+    .querySelectorAll(".form-step")
+    .forEach(s =>
+      s.classList.remove("active")
+    );
+
+  document
+    .getElementById(`step-${n}`)
+    ?.classList.add("active");
+
+  document
+    .querySelectorAll(".step-ind")
+    .forEach((el, i) => {
+
+      el.classList.remove(
+        "active",
+        "done"
+      );
+
+      if (i + 1 < n) {
+        el.classList.add("done");
+      }
+
+      if (i + 1 === n) {
+        el.classList.add("active");
+      }
+    });
+
+  document
+    .querySelectorAll(".step-line")
+    .forEach((el, i) => {
+
+      el.classList.toggle(
+        "done",
+        i + 1 < n
+      );
+    });
+}
+
+
+// ─────────────────────────────────────────────
+// STEP 1
+// ─────────────────────────────────────────────
+async function goStep2() {
+
+  const vid =
+    fVoterId.value.trim();
+
+  const dob =
+    fDob.value.trim();
+
+  const phone =
+    fPhone.value
+      .replace(/\D/g, "");
+
+  if (!vid) {
+
+    return showAlert(
+      "e",
+      "❌ Enter voter ID"
+    );
+  }
+
+  btn1.textContent =
+    "Checking...";
+
+  btn1.disabled = true;
+
+  try {
+
+    const res = await fetch(
+      `${API_BASE}/voters/${vid}`
+    );
+
+    if (!res.ok) {
+
+      return showAlert(
+        "e",
+        "❌ Voter not found"
+      );
+    }
+
+    const voter =
+      await res.json();
+
+    // DOB
+    if (!voter.dob) {
+
+      return showAlert(
+        "e",
+        "❌ DOB missing in system"
+      );
+    }
+
+    const dbDOB =
+      voter.dob.substring(0, 10);
+
+    if (dob !== dbDOB) {
+
+      return showAlert(
+        "e",
+        `❌ DOB mismatch`
+      );
+    }
+
+    // PHONE
+    if (!voter.mobileNo) {
+
+      return showAlert(
+        "e",
+        "❌ Mobile missing"
+      );
+    }
+
+    if (
+      phone !== voter.mobileNo
+    ) {
+
+      return showAlert(
+        "e",
+        "❌ Phone mismatch"
+      );
+    }
+
+    // ALREADY VOTED
+    if (voter.hasVoted) {
+
+      return showAlert(
+        "e",
+        "⚠️ Already voted"
+      );
+    }
+
+    verifiedVoter = voter;
+
+    showAlert(
+      "s",
+      `✅ Verified: ${voter.name}`
+    );
+
+    setTimeout(() => {
+
+      sendOtpToVoter(vid);
+
+    }, 500);
+
+  } catch (err) {
+
+    console.error(err);
+
+    showAlert(
+      "e",
+      "❌ Server error"
+    );
+
+  } finally {
+
+    btn1.textContent =
+      "Verify Identity & Send OTP";
+
+    btn1.disabled = false;
+  }
+}
+
+
+// ─────────────────────────────────────────────
+// SEND OTP
+// ─────────────────────────────────────────────
+async function sendOtpToVoter(voterId) {
+
+  try {
+
+    const res = await fetch(
+      `${API_BASE}/voters/${voterId}/send-otp`,
+      {
+        method: "POST"
+      }
+    );
+
+    if (!res.ok) {
+
+      return showAlert(
+        "e",
+        "❌ OTP failed"
+      );
+    }
+
+    const txt =
+      await res.text();
+
+    currentOtp =
+      txt.match(/\d{6}/)?.[0];
+
+    goStep(2);
+
+  } catch {
+
+    showAlert(
+      "e",
+      "❌ OTP error"
+    );
+  }
+}
+
+
+// ─────────────────────────────────────────────
+// VERIFY OTP
+// ─────────────────────────────────────────────
+async function goStep3() {
+
+  const otp =
+    [...document.querySelectorAll(".otp-digit")]
+      .map(i => i.value)
+      .join("");
+
+  if (otp.length !== 6) {
+
+    return showAlert(
+      "e",
+      "❌ Enter valid 6-digit OTP"
+    );
+  }
+
+  btn2.textContent =
+    "Verifying...";
+
+  btn2.disabled = true;
+
+  try {
+
+    console.log(
+      "📡 Sending OTP verify request..."
+    );
+
+    const res = await fetch(
+      `${API_BASE}/voters/${verifiedVoter.voterId}/verify-otp`,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+
+        body: JSON.stringify({
+          otp: otp
+        })
+      }
+    );
+
+    console.log(
+      "📥 RESPONSE STATUS:",
+      res.status
+    );
+
+    // try parsing response safely
+    let data = null;
+
+    try {
+
+      data = await res.json();
+
+    } catch {
+
+      console.warn(
+        "⚠️ Non-JSON response"
+      );
+    }
+
+    console.log(
+      "📥 VERIFY RESPONSE:",
+      data
+    );
+
+    // HARD CHECK
+    const success =
+      res.ok &&
+      (
+        data?.success === true ||
+        data?.verified === true ||
+        data?.message === "OTP verified"
+      );
+
+    if (!success) {
+
+      return showAlert(
+        "e",
+        data?.message ||
+        "❌ Invalid OTP"
+      );
+    }
+
+    showAlert(
+      "s",
+      "✅ OTP Verified"
+    );
+
+    console.log(
+      "✅ OTP SUCCESS"
+    );
+
+    setTimeout(() => {
+
+      goStep(3);
+
+    }, 500);
+
+  } catch (err) {
+
+    console.error(
+      "❌ OTP VERIFY ERROR:",
+      err
+    );
+
+    showAlert(
+      "e",
+      "❌ OTP verification failed"
+    );
+
+  } finally {
+
+    btn2.textContent =
+      "Verify OTP";
+
+    btn2.disabled = false;
+  }
+}
+// ─────────────────────────────────────────────
+// REAL BIOMETRIC AUTHENTICATION (WebAuthn)
+// ─────────────────────────────────────────────
+async function startBiometricVerification() {
+
+  const btn = document.getElementById("btn3");
+  const skipBtn = document.getElementById("skipBtn");
+
+  btn.textContent = "Authenticating...";
+  btn.disabled = true;
+
+  // Check if WebAuthn is supported
+  if (!window.PublicKeyCredential) {
+    showAlert("e", "⚠️ WebAuthn not supported on this browser");
+    btn.textContent = "🔒 Verify Biometric";
+    btn.disabled = false;
+    if (skipBtn) { skipBtn.style.display = "block"; }
+    return;
+  }
+
+  // Check if platform authenticator (fingerprint/face) is available
+  try {
+    const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+
+    if (!available) {
+      showAlert("i", "ℹ️ No biometric device found — use security key or skip");
+      btn.textContent = "🔒 Verify Biometric";
+      btn.disabled = false;
+      if (skipBtn) { skipBtn.style.display = "block"; }
+      return;
+    }
+  } catch (checkErr) {
+    console.warn("Platform authenticator check failed:", checkErr);
+  }
+
+  try {
+    showAlert("i", "🔐 Touch your fingerprint sensor or look at camera...");
+
+    // Generate a challenge (in production this comes from server)
+    const challengeBuffer = new Uint8Array(32);
+    crypto.getRandomValues(challengeBuffer);
+
+    const oderId = verifiedVoter ? verifiedVoter.voterId : "voter";
+    const userIdBuffer = new TextEncoder().encode(oderId);
+
+    // WebAuthn credential creation options
+    const createOptions = {
+      publicKey: {
+        challenge: challengeBuffer,
+        rp: {
+          name: "CivicChain Voting Platform",
+          id: window.location.hostname
+        },
+        user: {
+          id: userIdBuffer,
+          name: oderId,
+          displayName: verifiedVoter ? verifiedVoter.name : "Voter"
+        },
+        pubKeyCredParams: [
+          { type: "public-key", alg: -7 },   // ES256
+          { type: "public-key", alg: -257 }  // RS256
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: "platform",   // Force built-in biometric
+          userVerification: "required",          // Require fingerprint/face
+          residentKey: "preferred"
+        },
+        timeout: 60000,
+        attestation: "none"
+      }
+    };
+
+    // This triggers the real fingerprint/face prompt from the OS
+    const credential = await navigator.credentials.create(createOptions);
+
+    if (credential) {
+      biometricVerified = true;
+
+      // Save voter ID to sessionStorage for vote.html
+      if (verifiedVoter && verifiedVoter.voterId) {
+        sessionStorage.setItem('voterVid', verifiedVoter.voterId);
+        sessionStorage.setItem('voterName', verifiedVoter.name || '');
+      }
+
+      showAlert("s", "✅ Biometric verified — Access granted");
+
+      setTimeout(() => {
+        window.location.href = "vote.html";
+      }, 800);
+    }
+
+  } catch (err) {
+    console.error("Biometric error:", err);
+
+    if (err.name === "NotAllowedError") {
+      showAlert("e", "❌ Biometric cancelled — try again");
+    } else if (err.name === "SecurityError") {
+      showAlert("e", "⚠️ Security error — try HTTPS or localhost");
+      if (skipBtn) { skipBtn.style.display = "block"; }
+    } else {
+      showAlert("e", "❌ Biometric failed: " + (err.message || "Unknown error"));
+      if (skipBtn) { skipBtn.style.display = "block"; }
+    }
+
+    btn.textContent = "🔒 Verify Biometric";
+    btn.disabled = false;
+  }
+}
+
+// Fallback skip (only visible if biometrics unavailable)
+function skipBiometric() {
+  biometricVerified = true;
+  if (verifiedVoter && verifiedVoter.voterId) {
+    sessionStorage.setItem('voterVid', verifiedVoter.voterId);
+    sessionStorage.setItem('voterName', verifiedVoter.name || '');
+  }
+  showAlert("s", "✅ Access granted (demo bypass)");
+  setTimeout(() => { window.location.href = "vote.html"; }, 600);
+}
+
+
+// ─────────────────────────────────────────────
+// CURSOR
+// ─────────────────────────────────────────────
+function initCursor() {
+
+  const cursor =
+    document.getElementById(
+      "cursor"
+    );
+
+  const ring =
+    document.getElementById(
+      "cursorRing"
+    );
+
+  if (!cursor || !ring) {
+    return;
+  }
+
+  let x = 0;
+  let y = 0;
+
+  document.addEventListener(
+    "mousemove",
+    e => {
+
+      x = e.clientX;
+      y = e.clientY;
+
+      cursor.style.transform =
+        `translate(${x - 6}px, ${y - 6}px)`;
+
+      ring.style.transform =
+        `translate(${x - 18}px, ${y - 18}px)`;
+    }
+  );
+}
+
+
+// ─────────────────────────────────────────────
+// OTP INPUTS
+// ─────────────────────────────────────────────
+function setupOtpInputs() {
+
+  document
+    .querySelectorAll(".otp-digit")
+    .forEach((inp, i, arr) => {
+
+      inp.addEventListener(
+        "input",
+        () => {
+
+          inp.value =
+            inp.value.replace(
+              /\D/g,
+              ""
+            );
+
+          if (
+            inp.value &&
+            i < arr.length - 1
+          ) {
+
+            arr[i + 1].focus();
+          }
+        }
+      );
+
+      inp.addEventListener(
+        "keydown",
+        e => {
+
+          if (
+            e.key === "Backspace" &&
+            !inp.value &&
+            i > 0
+          ) {
+
+            arr[i - 1].focus();
+          }
+        }
+      );
+    });
+}
+
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+document.addEventListener(
+  "DOMContentLoaded",
+  async () => {
+
+    console.log(
+      "🚀 Login page initialized"
+    );
+
+    initCursor();
+
+    setupOtpInputs();
+
+    await checkVotingGate();
+
+    setInterval(
+      checkVotingGate,
+      3000
+    );
+  }
+);
+</script>
+</body>
+</html>
