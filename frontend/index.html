@@ -339,7 +339,7 @@ async function getData(endpoint) {
 }
 
 // ─────────────────────────────────────────────
-// SEARCH VOTER ID FUNCTION
+// SEARCH VOTER ID FUNCTION (SYNCED WITH LOGIN)
 // ─────────────────────────────────────────────
 async function searchVoterId(voterId) {
   const input = document.getElementById("voterIdInput");
@@ -354,7 +354,7 @@ async function searchVoterId(voterId) {
 
   try {
     // Trim and validate input
-    const cleanId = voterId.trim().toUpperCase();
+    const cleanId = voterId.trim();
 
     if (!cleanId) {
       throw new Error("Please enter a Voter ID");
@@ -362,54 +362,58 @@ async function searchVoterId(voterId) {
 
     console.log("🔍 Searching for Voter ID:", cleanId);
 
-    // Get voters from storage
-    const voters = ccGet('voters') || [];
+    // Use EXACT same API endpoint as login.html
+    // Format: GET /voters/{voterId}
+    const endpoint = `/voters/${encodeURIComponent(cleanId)}`;
+    console.log("📡 API Endpoint:", API_BASE + endpoint);
 
-    // Search in local storage first
-    let voter = voters.find(v => 
-      v.voterId && v.voterId.toUpperCase() === cleanId
-    );
-
-    // If not found locally, try API
-    if (!voter) {
-      console.log("📡 Checking API...");
-      try {
-        const apiResponse = await getData(`/voters/search/${encodeURIComponent(cleanId)}`);
-        if (apiResponse && apiResponse.voterId) {
-          voter = apiResponse;
-        }
-      } catch (apiErr) {
-        console.log("⚠️ API search failed, continuing with local search");
+    const response = await fetch(API_BASE + endpoint, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json"
       }
-    }
+    });
+
+    console.log("📥 API Response Status:", response.status);
 
     loading.style.display = "none";
 
-    if (voter) {
-      // Show success result
+    // Check if voter was found
+    if (!response.ok) {
+      console.log("❌ Voter not found (HTTP " + response.status + ")");
+      noResults.style.display = "block";
+      return;
+    }
+
+    // Parse voter data
+    const voter = await response.json();
+
+    console.log("✅ Voter data received:", voter);
+
+    // Validate voter object
+    if (voter && voter.voterId) {
       displayVoterResult(voter);
       results.style.display = "block";
     } else {
-      // No voter found
+      // Invalid response format
+      console.warn("⚠️ Invalid voter object structure");
       noResults.style.display = "block";
     }
 
   } catch (error) {
-    console.error("Search error:", error);
+    console.error("❌ Search error:", error);
     loading.style.display = "none";
     noResults.style.display = "block";
     
-    if (noResults) {
-      const noResultsText = noResults.querySelector("p");
-      if (noResultsText) {
-        noResultsText.textContent = "❌ " + error.message;
-      }
+    const noResultsText = noResults?.querySelector("p");
+    if (noResultsText) {
+      noResultsText.textContent = "❌ " + (error.message || "Search failed");
     }
   }
 }
 
 // ─────────────────────────────────────────────
-// DISPLAY VOTER RESULT
+// DISPLAY VOTER RESULT (SYNCED WITH LOGIN)
 // ─────────────────────────────────────────────
 function displayVoterResult(voter) {
   const resultStatus = document.getElementById("resultStatus");
@@ -417,19 +421,17 @@ function displayVoterResult(voter) {
 
   if (resultStatus) {
     resultStatus.innerHTML = "✅ Voter ID Found!";
+    resultStatus.style.color = "var(--success)";
   }
 
-  const statusColor = voter.verified ? "var(--success)" : "var(--warning)";
-  if (resultStatus) {
-    resultStatus.style.color = statusColor;
-  }
-
-  // Build details HTML
+  // Build details HTML - match fields from login.html backend response
   const details = [
     { label: "Voter ID", value: voter.voterId || "N/A" },
     { label: "Name", value: voter.name || "Not provided" },
     { label: "Email", value: voter.email || "Not registered" },
-    { label: "Status", value: voter.verified ? "✓ Verified" : "⚠ Pending Verification" },
+    { label: "Phone", value: voter.mobileNo ? maskPhone(voter.mobileNo) : "Not registered" },
+    { label: "Date of Birth", value: formatDate(voter.dob) },
+    { label: "Status", value: getVoterStatus(voter) },
     { label: "Registration Date", value: formatDate(voter.createdAt) },
   ];
 
@@ -441,6 +443,27 @@ function displayVoterResult(voter) {
       </div>
     `).join("");
   }
+}
+
+// ─────────────────────────────────────────────
+// VOTER STATUS HELPER
+// ─────────────────────────────────────────────
+function getVoterStatus(voter) {
+  if (voter.hasVoted) {
+    return "✓ Already Voted";
+  }
+  if (voter.verified) {
+    return "✓ Verified - Ready to Vote";
+  }
+  return "⚠ Pending Verification";
+}
+
+// ─────────────────────────────────────────────
+// MASK PHONE NUMBER
+// ─────────────────────────────────────────────
+function maskPhone(phone) {
+  if (!phone || phone.length < 4) return phone;
+  return "***" + phone.slice(-4);
 }
 
 // ─────────────────────────────────────────────
