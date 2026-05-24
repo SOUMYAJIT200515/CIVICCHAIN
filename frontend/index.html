@@ -134,6 +134,27 @@
     
     .close-result-btn{margin-top:20px;}
     
+    /* CONTACT SECTION */
+    .contact-section{padding:100px 60px !important;}
+    .contact-container{max-width:1200px;margin:0 auto;}
+    .contact-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-bottom:80px;}
+    .contact-card{background:var(--surface);border:1px solid var(--border);padding:30px;text-align:center;border-radius:8px;transition:all .3s;}
+    .contact-card:hover{border-color:var(--accent);box-shadow:0 0 30px rgba(0,229,255,.1);}
+    .contact-icon{font-size:2.5rem;margin-bottom:16px;}
+    .contact-title{font-size:1rem;font-weight:700;margin-bottom:8px;}
+    .contact-desc{font-size:.85rem;color:var(--muted);margin-bottom:16px;line-height:1.6;}
+    .contact-link{color:var(--accent);text-decoration:none;font-weight:600;font-size:.9rem;transition:color .2s;}
+    .contact-link:hover{color:var(--text);}
+    .contact-address,.contact-hours{font-size:.8rem;color:var(--muted);line-height:1.8;}
+    
+    .contact-form-wrapper{background:var(--surface);border:1px solid var(--border);padding:50px;text-align:center;border-radius:8px;}
+    .contact-form-title{font-size:1.6rem;font-weight:800;margin-bottom:8px;}
+    .contact-form-subtitle{font-size:.85rem;color:var(--muted);margin-bottom:30px;}
+    .contact-form-btn{display:inline-block;}
+    
+    @media(max-width:1100px){.contact-grid{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:768px){.contact-section{padding:60px 24px !important;}.contact-grid{grid-template-columns:1fr;}.contact-form-wrapper{padding:30px 24px;}}
+    
     @media(max-width:1100px){.hero-visual{display:none;}.steps-grid{grid-template-columns:repeat(2,1fr);}.features-grid{grid-template-columns:repeat(2,1fr);}}
     @media(max-width:768px){nav{padding:16px 24px;}.nav-links{display:none;}.hero,.section{padding-left:24px;padding-right:24px;}.steps-grid,.features-grid{grid-template-columns:1fr;}.stats-bar{flex-direction:column;}.search-section{padding:60px 24px !important;}.search-box{flex-direction:column;}.voter-id-input{width:100%;}}
   </style>
@@ -158,6 +179,7 @@
     <li><a href="#how">How It Works</a></li>
     <li><a href="#features">Security</a></li>
     <li><a href="results.html">📊 Results</a></li>
+    <li><a href="contact.html">📧 Contact</a></li>
     <li><a href="admin.html">⚙️ Admin</a></li>
   </ul>
   <a href="#" class="nav-cta" id="navVoteBtn">Cast Your Vote</a>
@@ -272,6 +294,50 @@
   <h2 class="cta-title">Ready to make<br>your voice <em>count</em>?</h2>
   <p class="cta-sub">Secure, verifiable, and permanent. Your vote is waiting.</p>
   <a href="#" class="btn-primary" id="ctaVoteBtn">Log In & Vote Now</a>
+</section>
+
+<!-- CONTACT US SECTION -->
+<section class="section contact-section" id="contact">
+  <div class="section-header"><div><div class="section-label">Support</div><h2 class="section-title">Get In Touch</h2></div></div>
+  
+  <div class="contact-container">
+    <div class="contact-grid">
+      <div class="contact-card">
+        <div class="contact-icon">📧</div>
+        <h3 class="contact-title">Email Support</h3>
+        <p class="contact-desc">Reach out to our support team for any queries</p>
+        <a href="mailto:support@civicchain.com" class="contact-link">support@civicchain.com</a>
+      </div>
+
+      <div class="contact-card">
+        <div class="contact-icon">📞</div>
+        <h3 class="contact-title">Phone Support</h3>
+        <p class="contact-desc">Call us during business hours (9 AM - 6 PM IST)</p>
+        <a href="tel:+919876543210" class="contact-link">+91 9876543210</a>
+      </div>
+
+      <div class="contact-card">
+        <div class="contact-icon">📍</div>
+        <h3 class="contact-title">Office Address</h3>
+        <p class="contact-desc">Visit our headquarters for in-person support</p>
+        <p class="contact-address">CivicChain Inc.<br>Kolkata, West Bengal<br>India 700001</p>
+      </div>
+
+      <div class="contact-card">
+        <div class="contact-icon">🕐</div>
+        <h3 class="contact-title">Business Hours</h3>
+        <p class="contact-desc">We're available to help you</p>
+        <p class="contact-hours">Monday - Friday: 9 AM - 6 PM IST<br>Saturday: 10 AM - 4 PM IST<br>Sunday: Closed</p>
+      </div>
+    </div>
+
+    <div class="contact-form-wrapper">
+      <h3 class="contact-form-title">Send us a Message</h3>
+      <p class="contact-form-subtitle">Fill out the form and we'll get back to you shortly</p>
+      
+      <a href="contact.html" class="btn-primary contact-form-btn">Open Contact Form</a>
+    </div>
+  </div>
 </section>
 
 <footer>
