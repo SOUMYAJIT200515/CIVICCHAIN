@@ -449,7 +449,7 @@ async function searchVoterId(voterId) {
 }
 
 // ─────────────────────────────────────────────
-// DISPLAY VOTER RESULT (SYNCED WITH LOGIN)
+// DISPLAY VOTER RESULT (MINIMAL - ONLY ID & NAME)
 // ─────────────────────────────────────────────
 function displayVoterResult(voter) {
   const resultStatus = document.getElementById("resultStatus");
@@ -460,15 +460,10 @@ function displayVoterResult(voter) {
     resultStatus.style.color = "var(--success)";
   }
 
-  // Build details HTML - match fields from login.html backend response
+  // Show only Voter ID and Name
   const details = [
     { label: "Voter ID", value: voter.voterId || "N/A" },
     { label: "Name", value: voter.name || "Not provided" },
-    { label: "Email", value: voter.email || "Not registered" },
-    { label: "Phone", value: voter.mobileNo ? maskPhone(voter.mobileNo) : "Not registered" },
-    { label: "Date of Birth", value: formatDate(voter.dob) },
-    { label: "Status", value: getVoterStatus(voter) },
-    { label: "Registration Date", value: formatDate(voter.createdAt) },
   ];
 
   if (resultDetails) {
@@ -479,27 +474,6 @@ function displayVoterResult(voter) {
       </div>
     `).join("");
   }
-}
-
-// ─────────────────────────────────────────────
-// VOTER STATUS HELPER
-// ─────────────────────────────────────────────
-function getVoterStatus(voter) {
-  if (voter.hasVoted) {
-    return "✓ Already Voted";
-  }
-  if (voter.verified) {
-    return "✓ Verified - Ready to Vote";
-  }
-  return "⚠ Pending Verification";
-}
-
-// ─────────────────────────────────────────────
-// MASK PHONE NUMBER
-// ─────────────────────────────────────────────
-function maskPhone(phone) {
-  if (!phone || phone.length < 4) return phone;
-  return "***" + phone.slice(-4);
 }
 
 // ─────────────────────────────────────────────
@@ -600,18 +574,6 @@ async function searchVoterIdWithFallback(voterId) {
     if (noResultsText) {
       noResultsText.textContent = "❌ " + (error.message || "Search failed");
     }
-  }
-}
-function formatDate(dateStr) {
-  if (!dateStr) return "N/A";
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  } catch {
-    return dateStr;
   }
 }
 
