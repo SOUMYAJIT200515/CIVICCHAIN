@@ -339,10 +339,9 @@ async function getData(endpoint) {
 }
 
 // ─────────────────────────────────────────────
-// SEARCH VOTER ID FUNCTION (SYNCED WITH LOGIN)
+// SEARCH VOTER ID FUNCTION (FIXED CORS)
 // ─────────────────────────────────────────────
 async function searchVoterId(voterId) {
-  const input = document.getElementById("voterIdInput");
   const loading = document.getElementById("searchLoading");
   const results = document.getElementById("searchResults");
   const noResults = document.getElementById("noResults");
@@ -365,49 +364,86 @@ async function searchVoterId(voterId) {
     // Use EXACT same API endpoint as login.html
     // Format: GET /voters/{voterId}
     const endpoint = `/voters/${encodeURIComponent(cleanId)}`;
-    console.log("📡 API Endpoint:", API_BASE + endpoint);
+    const fullUrl = API_BASE + endpoint;
+    
+    console.log("📡 API Endpoint:", fullUrl);
 
-    const response = await fetch(API_BASE + endpoint, {
+    // Add CORS headers and timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(fullUrl, {
       method: "GET",
       headers: {
-        "Content-Type": "application/json"
-      }
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      credentials: "include",
+      signal: controller.signal
     });
 
+    clearTimeout(timeoutId);
+
     console.log("📥 API Response Status:", response.status);
+    console.log("📥 Response Headers:", {
+      contentType: response.headers.get("content-type"),
+      corsHeader: response.headers.get("access-control-allow-origin")
+    });
 
     loading.style.display = "none";
 
-    // Check if voter was found
-    if (!response.ok) {
-      console.log("❌ Voter not found (HTTP " + response.status + ")");
+    // Check response status
+    if (response.status === 404) {
+      console.log("❌ Voter not found (HTTP 404)");
       noResults.style.display = "block";
       return;
     }
 
+    if (!response.ok) {
+      console.log("❌ API error (HTTP " + response.status + ")");
+      throw new Error(`Server error: HTTP ${response.status}`);
+    }
+
     // Parse voter data
-    const voter = await response.json();
+    let voter;
+    try {
+      const text = await response.text();
+      console.log("📥 Raw response:", text);
+      voter = JSON.parse(text);
+    } catch (parseErr) {
+      console.error("❌ Failed to parse response:", parseErr);
+      throw new Error("Invalid response format from server");
+    }
 
     console.log("✅ Voter data received:", voter);
 
-    // Validate voter object
-    if (voter && voter.voterId) {
+    // Validate voter object - check if it has the voterId property
+    if (voter && (voter.voterId || voter.voterId !== undefined)) {
       displayVoterResult(voter);
       results.style.display = "block";
     } else {
       // Invalid response format
-      console.warn("⚠️ Invalid voter object structure");
+      console.warn("⚠️ Invalid voter object structure:", voter);
       noResults.style.display = "block";
     }
 
   } catch (error) {
     console.error("❌ Search error:", error);
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    
     loading.style.display = "none";
     noResults.style.display = "block";
     
     const noResultsText = noResults?.querySelector("p");
     if (noResultsText) {
-      noResultsText.textContent = "❌ " + (error.message || "Search failed");
+      if (error.name === "AbortError") {
+        noResultsText.textContent = "❌ Request timeout - Please try again";
+      } else if (error.message.includes("Failed to fetch")) {
+        noResultsText.textContent = "❌ Network error - Check your connection and CORS settings";
+      } else {
+        noResultsText.textContent = "❌ " + (error.message || "Search failed");
+      }
     }
   }
 }
@@ -467,8 +503,105 @@ function maskPhone(phone) {
 }
 
 // ─────────────────────────────────────────────
-// FORMAT DATE HELPER
+// SEARCH WITH FALLBACK (LOCAL + API)
 // ─────────────────────────────────────────────
+async function searchVoterIdWithFallback(voterId) {
+  const loading = document.getElementById("searchLoading");
+  const results = document.getElementById("searchResults");
+  const noResults = document.getElementById("noResults");
+
+  // Reset display
+  results.style.display = "none";
+  noResults.style.display = "none";
+  loading.style.display = "block";
+
+  try {
+    const cleanId = voterId.trim();
+
+    if (!cleanId) {
+      throw new Error("Please enter a Voter ID");
+    }
+
+    console.log("🔍 Searching for Voter ID:", cleanId);
+    console.log("📡 Method 1: Trying API endpoint...");
+
+    // METHOD 1: Try API first
+    try {
+      const endpoint = `/voters/${encodeURIComponent(cleanId)}`;
+      const fullUrl = API_BASE + endpoint;
+      
+      console.log("API URL:", fullUrl);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch(fullUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        credentials: "include",
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const voter = await response.json();
+        console.log("✅ API Success:", voter);
+        loading.style.display = "none";
+        displayVoterResult(voter);
+        results.style.display = "block";
+        return;
+      }
+
+      if (response.status === 404) {
+        console.log("❌ Voter not found in API (HTTP 404)");
+        loading.style.display = "none";
+        noResults.style.display = "block";
+        return;
+      }
+
+      console.log("⚠️ API error (HTTP " + response.status + "), trying fallback...");
+
+    } catch (apiErr) {
+      console.log("⚠️ API call failed:", apiErr.message);
+      console.log("📡 Method 2: Trying localStorage fallback...");
+    }
+
+    // METHOD 2: Fallback to localStorage (used in voting)
+    const voters = ccGet('voters') || [];
+    console.log("Voters in localStorage:", voters.length);
+
+    const foundVoter = voters.find(v => {
+      const vid = String(v.voterId || "").trim();
+      const search = String(cleanId).trim();
+      return vid.toLowerCase() === search.toLowerCase();
+    });
+
+    loading.style.display = "none";
+
+    if (foundVoter) {
+      console.log("✅ Found in localStorage:", foundVoter);
+      displayVoterResult(foundVoter);
+      results.style.display = "block";
+    } else {
+      console.log("❌ Not found in API or localStorage");
+      noResults.style.display = "block";
+    }
+
+  } catch (error) {
+    console.error("❌ Search error:", error);
+    loading.style.display = "none";
+    noResults.style.display = "block";
+    
+    const noResultsText = noResults?.querySelector("p");
+    if (noResultsText) {
+      noResultsText.textContent = "❌ " + (error.message || "Search failed");
+    }
+  }
+}
 function formatDate(dateStr) {
   if (!dateStr) return "N/A";
   try {
@@ -670,7 +803,7 @@ if (searchBtn) {
   searchBtn.addEventListener("click", (e) => {
     e.preventDefault();
     const voterId = voterIdInput.value;
-    searchVoterId(voterId);
+    searchVoterIdWithFallback(voterId);
   });
 }
 
@@ -678,7 +811,7 @@ if (voterIdInput) {
   voterIdInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") {
       const voterId = voterIdInput.value;
-      searchVoterId(voterId);
+      searchVoterIdWithFallback(voterId);
     }
   });
 }
