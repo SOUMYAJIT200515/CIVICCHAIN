@@ -1,1164 +1,762 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CivicChain — Voter Login</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
-<style>
-  :root{--bg:#030712;--surface:#0d1117;--border:#1e2936;--accent:#00e5ff;--text:#e2e8f0;--muted:#64748b;--success:#10b981;--error:#ef4444;--warning:#f59e0b;}
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;display:flex;overflow:hidden;cursor:none;}
-  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;}
-  .cursor{width:12px;height:12px;background:var(--accent);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9999;mix-blend-mode:difference;}
-  .cursor-ring{width:36px;height:36px;border:1px solid var(--accent);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9998;opacity:.4;}
-  /* LOCKED OVERLAY */
-  .locked-overlay{position:fixed;inset:0;background:rgba(3,7,18,.97);backdrop-filter:blur(20px);z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;padding:40px;}
-  .locked-overlay.show{display:flex;}
-  .locked-overlay h2{font-size:2rem;font-weight:800;color:var(--error);}
-  .locked-overlay p{color:var(--muted);max-width:400px;line-height:1.6;}
-  .locked-overlay a{color:var(--accent);text-decoration:none;font-family:'JetBrains Mono',monospace;font-size:.8rem;border:1px solid var(--accent);padding:10px 24px;margin-top:8px;display:inline-block;transition:background .2s;}
-  .locked-overlay a:hover{background:var(--accent);color:var(--bg);}
-  /* LEFT PANEL */
-  .left-panel{width:42%;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:space-between;padding:40px;position:relative;overflow:hidden;}
-  .left-panel::before{content:'';position:absolute;bottom:-100px;right:-100px;width:400px;height:400px;background:radial-gradient(circle,rgba(0,229,255,.06) 0%,transparent 70%);pointer-events:none;}
-  .panel-logo{display:flex;align-items:center;gap:10px;font-size:1.1rem;font-weight:800;letter-spacing:-.02em;text-decoration:none;color:var(--text);}
-  .logo-dot{width:8px;height:8px;background:var(--accent);border-radius:50%;animation:pulse-dot 2s infinite;}
-  @keyframes pulse-dot{0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,.4)}50%{box-shadow:0 0 0 8px rgba(0,229,255,0)}}
-  .top-links{position:absolute;top:20px;right:20px;display:flex;gap:16px;}
-  .top-link{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--accent);text-decoration:none;letter-spacing:.1em;text-transform:uppercase;transition:opacity .2s;}
-  .top-link:hover{opacity:.7;}
-  .panel-content{flex:1;display:flex;flex-direction:column;justify-content:center;}
-  .panel-tag{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:24px;display:flex;align-items:center;gap:8px;}
-  .live-dot{width:5px;height:5px;background:var(--success);border-radius:50%;animation:blink 1.5s infinite;}
-  @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-  .panel-title{font-size:2.8rem;font-weight:800;letter-spacing:-.04em;line-height:.95;margin-bottom:20px;}
-  .panel-title .accent{color:var(--accent);}
-  .panel-title .stroke{-webkit-text-stroke:1px var(--muted);color:transparent;}
-  .panel-desc{font-size:.85rem;color:var(--muted);line-height:1.7;max-width:340px;margin-bottom:40px;font-weight:400;}
-  .badge{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border);background:rgba(0,0,0,.2);margin-bottom:10px;}
-  .badge-text strong{display:block;color:var(--text);font-size:.8rem;margin-bottom:2px;}
-  .badge-text span{color:var(--muted);font-size:.75rem;}
-  .panel-footer{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);letter-spacing:.1em;display:flex;justify-content:space-between;}
-  /* RIGHT PANEL */
-  .right-panel{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:60px 40px;position:relative;}
-  .form-container{width:100%;max-width:440px;animation:fadeIn .5s ease;}
-  @keyframes fadeIn{from{opacity:0;transform:translateY(16px)}}
-  .form-title{font-size:1.8rem;font-weight:800;letter-spacing:-.03em;margin-bottom:6px;}
-  .form-subtitle{font-size:.82rem;color:var(--muted);font-weight:400;margin-bottom:32px;}
-  /* STEP INDICATOR */
-  .steps-indicator{display:flex;align-items:center;gap:0;margin-bottom:28px;}
-  .step-ind{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);letter-spacing:.1em;}
-  .step-ind.active{color:var(--accent);}
-  .step-ind.done{color:var(--success);}
-  .step-circle{width:24px;height:24px;border:1px solid currentColor;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;}
-  .step-ind.done .step-circle{background:var(--success);border-color:var(--success);color:#fff;}
-  .step-ind.active .step-circle{background:var(--accent);border-color:var(--accent);color:var(--bg);}
-  .step-line{flex:1;height:1px;background:var(--border);margin:0 8px;}
-  .step-line.done{background:var(--success);}
-  /* FORMS */
-  .form-step{display:none;}
-  .form-step.active{display:block;animation:stepIn .35s ease;}
-  @keyframes stepIn{from{opacity:0;transform:translateX(16px)}}
-  .field{margin-bottom:18px;}
-  .field-label{display:block;font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:7px;}
-  .field-wrap{position:relative;}
-  .field-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:.9rem;pointer-events:none;}
-  input[type=text],input[type=tel],input[type=password]{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.85rem;padding:13px 13px 13px 42px;outline:none;border-radius:4px;transition:border-color .2s,box-shadow .2s;letter-spacing:.04em;}
-  input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,229,255,.08);}
-  input.err{border-color:var(--error);}
-  input.ok{border-color:var(--success);}
-  input::placeholder{color:var(--muted);}
-  .field-hint{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);margin-top:5px;}
-  .field-error{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--error);margin-top:5px;display:none;}
-  .field-error.show{display:block;}
-  /* OTP */
-  .otp-group{display:flex;gap:8px;}
-  .otp-group input{flex:1;text-align:center;padding:16px 6px;font-size:1.2rem;font-weight:700;letter-spacing:0;}
-  .otp-timer{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);text-align:center;margin-top:10px;}
-  .otp-timer span{color:var(--warning);}
-  .resend-btn{background:none;border:none;color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:.62rem;cursor:pointer;display:none;text-decoration:underline;}
-  .resend-btn.show{display:inline;}
-  /* BUTTONS */
-  .btn{width:100%;padding:14px;font-family:'Syne',sans-serif;font-weight:700;font-size:.88rem;letter-spacing:.06em;text-transform:uppercase;border:none;cursor:pointer;margin-top:6px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));}
-  .btn-accent{background:var(--accent);color:var(--bg);}
-  .btn-accent:hover{box-shadow:0 0 30px rgba(0,229,255,.25);transform:translateY(-1px);}
-  .btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted);margin-top:10px;clip-path:none;}
-  .btn-outline:hover{border-color:var(--text);color:var(--text);}
-  .btn:disabled{opacity:.4;cursor:not-allowed;}
-  .spinner-wrap{display:none;justify-content:center;margin:6px 0;}
-  .spinner-wrap.show{display:flex;}
-  .spinner{width:20px;height:20px;border:2px solid rgba(3,7,18,.15);border-top-color:var(--bg);border-radius:50%;animation:spin .7s linear infinite;}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  /* ALERT */
-  .alert{padding:11px 14px;border-left:3px solid;font-family:'JetBrains Mono',monospace;font-size:.7rem;line-height:1.5;margin-bottom:16px;display:none;border-radius:2px;}
-  .alert.show{display:block;}
-  .alert-s{border-color:var(--success);background:rgba(16,185,129,.06);color:var(--success);}
-  .alert-e{border-color:var(--error);background:rgba(239,68,68,.06);color:var(--error);}
-  .alert-i{border-color:var(--accent);background:rgba(0,229,255,.06);color:var(--accent);}
-  /* wallet */
-  .wallet-status{display:none;align-items:center;gap:8px;padding:10px 13px;background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--success);margin-top:10px;border-radius:4px;}
-  .wallet-status.show{display:flex;}
-  .mm-btn{width:100%;padding:13px;background:transparent;border:1px solid rgba(246,133,27,.35);color:#f6851b;font-family:'JetBrains Mono',monospace;font-size:.75rem;letter-spacing:.08em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .2s,border-color .2s;border-radius:4px;}
-  .mm-btn:hover{background:rgba(246,133,27,.07);border-color:rgba(246,133,27,.6);}
-  .divider{display:flex;align-items:center;gap:12px;margin:16px 0;font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);letter-spacing:.1em;}
-  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
-  /* LIVENESS */
-  #liveness-canvas{border:1px solid rgba(0,229,255,.3);border-radius:8px;display:block;margin:0 auto;}
-  #liveness-video{display:none;}
-  #liveness-timer{font-family:'JetBrains Mono',monospace;font-size:2.5rem;color:var(--accent);text-align:center;margin:12px 0;}
-  #liveness-instruction{text-align:center;font-size:.95rem;font-weight:600;color:var(--accent);margin-bottom:8px;animation:pulse 1.5s infinite;}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-  #liveness-status{text-align:center;font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--muted);margin-top:6px;min-height:20px;}
-  @media(max-width:900px){body{flex-direction:column;overflow:auto;}.left-panel{width:100%;min-height:auto;padding:24px;}.right-panel{padding:32px 24px;}.badge{display:none;}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CivicChain · Decentralized E-Voting</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#030712;--surface:#0d1117;--border:#1e2936;--accent:#00e5ff;--accent2:#7c3aed;--text:#e2e8f0;--muted:#64748b;--success:#10b981;--warning:#f59e0b;--error:#ef4444;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;overflow-x:hidden;cursor:none;}
+    .cursor{width:12px;height:12px;background:var(--accent);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9999;mix-blend-mode:difference;}
+    .cursor-ring{width:36px;height:36px;border:1px solid var(--accent);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9998;opacity:.5;transition:width .2s,height .2s;}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.03) 1px,transparent 1px);background-size:60px 60px;z-index:0;pointer-events:none;}
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:20px 60px;background:rgba(3,7,18,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+    .logo{font-size:1.3rem;font-weight:800;letter-spacing:-.02em;color:var(--text);display:flex;align-items:center;gap:10px;text-decoration:none;}
+    .logo-dot{width:10px;height:10px;background:var(--accent);border-radius:50%;animation:pulse-dot 2s infinite;}
+    @keyframes pulse-dot{0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,.4)}50%{box-shadow:0 0 0 8px rgba(0,229,255,0)}}
+    .nav-links{display:flex;gap:32px;list-style:none;}
+    .nav-links a{color:var(--muted);text-decoration:none;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;font-weight:500;transition:color .2s;}
+    .nav-links a:hover{color:var(--text);}
+    .nav-cta{padding:10px 24px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:'Syne',sans-serif;font-size:.85rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;cursor:none;text-decoration:none;transition:background .2s,color .2s;}
+    .nav-cta:hover{background:var(--accent);color:var(--bg);}
+    .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:120px 60px 60px;position:relative;z-index:1;}
+    .hero-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid var(--border);border-left:3px solid var(--accent);font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;margin-bottom:40px;animation:fadeSlideUp .8s ease both;}
+    .status-dot{width:6px;height:6px;border-radius:50%;animation:blink 1.5s infinite;}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+    .hero-title{font-size:clamp(3rem,8vw,7rem);font-weight:800;line-height:.9;letter-spacing:-.04em;margin-bottom:30px;animation:fadeSlideUp .8s .1s ease both;}
+    .hero-title .line2{color:var(--accent);}
+    .hero-title .line3{-webkit-text-stroke:1px var(--muted);color:transparent;}
+    .hero-desc{max-width:500px;color:var(--muted);font-size:1rem;line-height:1.7;margin-bottom:50px;animation:fadeSlideUp .8s .2s ease both;font-weight:400;}
+    .hero-actions{display:flex;gap:16px;animation:fadeSlideUp .8s .3s ease both;}
+    .btn-primary{padding:16px 40px;background:var(--accent);color:var(--bg);font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;letter-spacing:.05em;text-transform:uppercase;border:none;cursor:none;text-decoration:none;display:inline-block;transition:transform .2s,box-shadow .2s;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 0 40px rgba(0,229,255,.3);}
+    .btn-ghost{padding:16px 40px;background:transparent;color:var(--text);font-family:'Syne',sans-serif;font-weight:600;font-size:.9rem;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--border);cursor:none;text-decoration:none;display:inline-block;transition:border-color .2s;}
+    .btn-ghost:hover{border-color:var(--text);}
+    .hero-visual{position:absolute;right:60px;top:50%;transform:translateY(-50%);width:420px;animation:fadeSlideLeft 1s .4s ease both;}
+    .chain-viz{position:relative;width:100%;height:420px;}
+    .block-card{position:absolute;background:var(--surface);border:1px solid var(--border);padding:16px 20px;font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted);}
+    .block-card:hover{border-color:var(--accent);}
+    .block-num{color:var(--accent);font-size:.6rem;letter-spacing:.1em;margin-bottom:8px;}
+    .block-hash{color:var(--text);font-size:.65rem;margin-bottom:6px;}
+    .block-votes{color:var(--success);font-size:.6rem;}
+    .block-card:nth-child(1){top:0;left:20px;width:240px;animation:floatA 4s ease-in-out infinite;}
+    .block-card:nth-child(2){top:120px;right:0;width:200px;animation:floatB 4s .5s ease-in-out infinite;}
+    .block-card:nth-child(3){top:240px;left:40px;width:220px;animation:floatA 4s 1s ease-in-out infinite;}
+    .block-card:nth-child(4){bottom:20px;right:20px;width:180px;animation:floatB 4s 1.5s ease-in-out infinite;}
+    .chain-line{position:absolute;background:linear-gradient(90deg,transparent,var(--accent),transparent);height:1px;opacity:.4;}
+    .chain-line:nth-child(5){top:80px;left:10px;width:300px;transform:rotate(25deg);}
+    .chain-line:nth-child(6){top:200px;right:0;width:250px;transform:rotate(-15deg);}
+    .chain-line:nth-child(7){bottom:100px;left:20px;width:280px;transform:rotate(10deg);}
+    @keyframes floatA{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    @keyframes floatB{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+    @keyframes fadeSlideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeSlideLeft{from{opacity:0;transform:translate(30px,-50%)}to{opacity:1;transform:translate(0,-50%)}}
+    .stats-bar{position:relative;z-index:1;display:flex;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:0 0 100px;}
+    .stat-item{flex:1;padding:30px 60px;border-right:1px solid var(--border);}
+    .stat-item:last-child{border-right:none;}
+    .stat-num{font-size:2.5rem;font-weight:800;letter-spacing:-.04em;color:var(--text);}
+    .stat-num span{color:var(--accent);}
+    .stat-label{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;}
+    .section{position:relative;z-index:1;padding:0 60px 100px;}
+    .section-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:60px;padding-bottom:30px;border-bottom:1px solid var(--border);}
+    .section-label{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:12px;}
+    .section-title{font-size:2.5rem;font-weight:800;letter-spacing:-.03em;}
+    .steps-grid{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--border);}
+    .step-card{padding:40px 30px;border-right:1px solid var(--border);transition:background .3s;}
+    .step-card:last-child{border-right:none;}
+    .step-card:hover{background:rgba(0,229,255,.03);}
+    .step-num{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--accent);letter-spacing:.2em;margin-bottom:20px;}
+    .step-title{font-size:1.1rem;font-weight:700;margin-bottom:12px;}
+    .step-desc{font-size:.85rem;color:var(--muted);line-height:1.6;}
+    .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);}
+    .feature-card{background:var(--bg);padding:40px;transition:background .3s;}
+    .feature-card:hover{background:var(--surface);}
+    .feature-icon-wrap{width:48px;height:48px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:20px;}
+    .feature-title{font-size:1rem;font-weight:700;margin-bottom:10px;}
+    .feature-desc{font-size:.82rem;color:var(--muted);line-height:1.65;}
+    .cta-section{position:relative;z-index:1;padding:100px 60px;text-align:center;}
+    .cta-title{font-size:clamp(2.5rem,5vw,4.5rem);font-weight:800;letter-spacing:-.04em;margin-bottom:20px;}
+    .cta-title em{font-style:normal;color:var(--accent);}
+    .cta-sub{color:var(--muted);font-size:1rem;margin-bottom:40px;}
+    footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:30px 60px;display:flex;align-items:center;justify-content:space-between;}
+    .footer-copy{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);}
+    .footer-links{display:flex;gap:30px;}
+    .footer-links a{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);text-decoration:none;}
+    .ticker{overflow:hidden;background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:10px 0;margin-bottom:80px;}
+    .ticker-inner{display:flex;gap:60px;animation:ticker 20s linear infinite;white-space:nowrap;}
+    .ticker-item{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);display:flex;align-items:center;gap:10px;}
+    .ticker-item::before{content:'▶';color:var(--accent);font-size:.5rem;}
+    @keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;visibility:hidden;opacity:0;transition:.3s;}
+    .modal-overlay.active{visibility:visible;opacity:1;}
+    .modal-box{background:var(--surface);border:1px solid var(--border);padding:40px;max-width:440px;width:90%;text-align:center;}
+    .modal-box h3{font-size:1.6rem;margin-bottom:16px;color:var(--text);}
+    .modal-box p{color:var(--muted);margin-bottom:28px;line-height:1.6;font-size:.9rem;}
+    .modal-close{background:transparent;border:1px solid var(--border);color:var(--text);padding:12px 28px;font-family:'Syne',sans-serif;font-weight:600;cursor:none;transition:.2s;}
+    .modal-close:hover{border-color:var(--accent);color:var(--accent);}
+    /* Voting status banner */
+    .voting-banner{position:relative;z-index:1;text-align:center;padding:10px 60px;font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.1em;display:none;}
+    .voting-banner.open{display:block;background:rgba(16,185,129,.08);border-top:1px solid rgba(16,185,129,.2);border-bottom:1px solid rgba(16,185,129,.2);color:var(--success);}
+    .voting-banner.closed{display:block;background:rgba(239,68,68,.06);border-top:1px solid rgba(239,68,68,.15);border-bottom:1px solid rgba(239,68,68,.15);color:var(--error);}
+    
+    /* SEARCH SECTION STYLES */
+    .search-section{padding:80px 60px !important;}
+    .search-container{max-width:700px;margin:0 auto;}
+    .search-box{display:flex;gap:12px;margin-bottom:40px;}
+    .voter-id-input{flex:1;padding:16px 20px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'Syne',sans-serif;font-size:1rem;border-radius:4px;transition:border-color .2s;}
+    .voter-id-input::placeholder{color:var(--muted);}
+    .voter-id-input:focus{outline:none;border-color:var(--accent);}
+    .search-btn{padding:16px 40px !important;margin:0;}
+    
+    /* Search Results Card */
+    .search-results{animation:fadeSlideUp .5s ease;}
+    .result-card{background:var(--surface);border:2px solid var(--success);padding:40px;border-radius:8px;text-align:center;}
+    .result-status{font-size:2rem;margin-bottom:20px;}
+    .result-details{margin-bottom:30px;text-align:left;}
+    .result-detail-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+    .result-detail-row:last-child{border-bottom:none;}
+    .result-detail-label{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.85rem;font-weight:600;}
+    .result-detail-value{color:var(--text);font-weight:600;word-break:break-all;}
+    
+    /* Loading Spinner */
+    .search-loading{text-align:center;padding:40px;}
+    .spinner{width:50px;height:50px;border:3px solid var(--border);border-top:3px solid var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 20px;}
+    @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+    .search-loading p{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.85rem;}
+    
+    /* No Results */
+    .no-results{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);padding:30px;border-radius:8px;text-align:center;}
+    .no-results p{color:var(--muted);margin-bottom:12px;font-size:.95rem;}
+    .no-results-sub{color:var(--error) !important;font-weight:600;}
+    
+    .close-result-btn{margin-top:20px;}
+    
+    @media(max-width:1100px){.hero-visual{display:none;}.steps-grid{grid-template-columns:repeat(2,1fr);}.features-grid{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:768px){nav{padding:16px 24px;}.nav-links{display:none;}.hero,.section{padding-left:24px;padding-right:24px;}.steps-grid,.features-grid{grid-template-columns:1fr;}.stats-bar{flex-direction:column;}.search-section{padding:60px 24px !important;}.search-box{flex-direction:column;}.voter-id-input{width:100%;}}
+  </style>
 </head>
 <body>
 <div class="cursor" id="cursor"></div>
 <div class="cursor-ring" id="cursorRing"></div>
 
-<!-- VOTING CLOSED OVERLAY -->
-<div class="locked-overlay" id="lockedOverlay">
-  <div style="font-size:4rem">🔒</div>
-  <h2>Voting Is Not Open</h2>
-  <p>The election administrator has not opened voting yet. Please wait for voting to be unlocked before logging in.</p>
-  <a href="index.html">← Return to Home</a>
-  <a href="results.html">📊 View Results</a>
-</div>
-
-<!-- LEFT PANEL -->
-<div class="left-panel">
-  <a href="index.html" class="panel-logo"><div class="logo-dot"></div>CivicChain</a>
-  <div class="top-links">
-    <a href="admin.html" class="top-link">⚙️ Admin</a>
-    <a href="results.html" class="top-link">📊 Results</a>
-  </div>
-  <div class="panel-content">
-    <div class="panel-tag"><span class="live-dot"></span>Secure Authentication Portal</div>
-    <h2 class="panel-title">YOUR<br><span class="accent">VOTE</span><br><span class="stroke">SECURED.</span></h2>
-    <p class="panel-desc">Multi-layer authentication ensures only verified citizens can participate. Your identity is verified locally — never transmitted in plain text.</p>
-    <div>
-      <div class="badge"><span>🔒</span><div class="badge-text"><strong>AES-256 Encryption</strong><span>All data encrypted before transmission</span></div></div>
-      <div class="badge"><span>📱</span><div class="badge-text"><strong>OTP Verification</strong><span>6-digit code sent to phone</span></div></div>
-      <div class="badge"><span>🔐</span><div class="badge-text"><strong>Biometric Auth</strong><span>Fingerprint/Face verification (WebAuthn)</span></div></div>
-    </div>
-  </div>
-  <div class="panel-footer"><span>v2.1.4 — Audited</span><span>SSL/TLS 1.3</span></div>
-</div>
-
-<!-- RIGHT PANEL -->
-<div class="right-panel">
-  <div class="form-container">
-    <h1 class="form-title">Voter Login</h1>
-    <p class="form-subtitle">Complete all steps to access your ballot</p>
-
-    <!-- STEP INDICATORS -->
-    <div class="steps-indicator">
-      <div class="step-ind active" id="si1"><div class="step-circle">1</div><span>IDENTITY</span></div>
-      <div class="step-line" id="sl12"></div>
-      <div class="step-ind" id="si2"><div class="step-circle">2</div><span>OTP</span></div>
-      <div class="step-line" id="sl23"></div>
-      <div class="step-ind" id="si3"><div class="step-circle">3</div><span>BIOMETRIC</span></div>
-      <div class="step-line" id="sl34"></div>
-      <div class="step-ind" id="si4"><div class="step-circle">4</div><span>LIVENESS</span></div>
-      <div class="step-line" id="sl45"></div>
-      <div class="step-ind" id="si5"><div class="step-circle">5</div><span>WALLET</span></div>
-    </div>
-
-    <!-- ALERT -->
-    <div class="alert" id="alert"></div>
-
-    <!-- STEP 1: Identity -->
-    <div class="form-step active" id="step-1">
-      <div class="field">
-        <label class="field-label">Voter ID</label>
-        <div class="field-wrap">
-          <span class="field-icon">🪪</span>
-          <input type="text" id="fVoterId" placeholder="VOT1001" autocomplete="off">
-        </div>
-        <div class="field-hint">Enter your registered Voter ID (e.g. VOT1001)</div>
-        <div class="field-error" id="err-vid">Voter ID not found in the registry</div>
-      </div>
-      <div class="field">
-        <label class="field-label">Date of Birth</label>
-        <div class="field-wrap">
-          <span class="field-icon">📅</span>
-          <input type="text" id="fDob" placeholder="YYYY-MM-DD" maxlength="10">
-        </div>
-        <div class="field-error" id="err-dob">Date of birth does not match records</div>
-      </div>
-      <div class="field">
-        <label class="field-label">Registered Mobile</label>
-        <div class="field-wrap">
-          <span class="field-icon">📱</span>
-          <input type="tel" id="fPhone" placeholder="9876543210">
-        </div>
-        <div class="field-hint">OTP will be sent to this number</div>
-        <div class="field-error" id="err-phone">Phone number does not match records</div>
-      </div>
-      <button class="btn btn-accent" id="btn1" onclick="goStep2()">Verify Identity & Send OTP</button>
-    </div>
-
-    <!-- STEP 2: OTP -->
-    <div class="form-step" id="step-2">
-      <div class="field">
-        <label class="field-label">Enter 6-digit OTP</label>
-        <div class="alert alert-s show" style="margin-bottom: 16px;">✓ OTP sent to your registered phone</div>
-        <div class="otp-group" id="otpGroup">
-          <input type="text" maxlength="1" class="otp-digit" inputmode="numeric">
-          <input type="text" maxlength="1" class="otp-digit" inputmode="numeric">
-          <input type="text" maxlength="1" class="otp-digit" inputmode="numeric">
-          <input type="text" maxlength="1" class="otp-digit" inputmode="numeric">
-          <input type="text" maxlength="1" class="otp-digit" inputmode="numeric">
-          <input type="text" maxlength="1" class="otp-digit" inputmode="numeric">
-        </div>
-        <div class="field-error" id="err-otp">Invalid OTP. Please try again.</div>
-      </div>
-      <div class="otp-timer">Expires in <span id="countdown">02:00</span> &nbsp; <button class="resend-btn" id="resendBtn" onclick="resendOTP()">Resend</button></div>
-      <button class="btn btn-accent" id="btn2" onclick="goStep3()">Verify OTP</button>
-      <button class="btn btn-outline" onclick="goStep(1)">← Back</button>
-    </div>
-
-    <!-- STEP 3: Biometric -->
-    <div class="form-step" id="step-3">
-      <div class="alert alert-s show" style="margin-bottom: 16px;">✓ Identity and OTP verified successfully</div>
-      <p style="font-size:.82rem;color:var(--muted);line-height:1.7;margin-bottom:20px;font-weight:400">Complete biometric authentication using your device's fingerprint, face recognition, or security key.</p>
-      
-      <div style="text-align: center; padding: 20px 0;">
-        <div style="font-size: 3rem; margin-bottom: 10px;">🔐</div>
-        <p style="font-size:.85rem;color:var(--text);margin-bottom:5px;">Fingerprint / Face Recognition</p>
-        <p style="font-size:.72rem;color:var(--muted);">Secure WebAuthn biometric authentication</p>
-      </div>
-
-      <button class="btn btn-accent" id="btn3" onclick="startBiometricVerification()">🔒 Verify Biometric</button>
-      <button class="btn btn-outline" onclick="skipBiometric()" style="display: none;" id="skipBtn">⏭️ Skip (Demo)</button>
-      <button class="btn btn-outline" onclick="goStep(2)">← Back</button>
-    </div>
-
-    <!-- STEP 4: Liveness Check -->
-    <div class="form-step" id="step-4">
-      <div style="text-align:center;">
-        <p class="form-title" style="font-size:1.4rem;">LIVENESS CHECK</p>
-        <p style="font-size:.75rem;color:var(--muted);margin-bottom:16px;">Please blink your eyes when instructed</p>
-        <video id="liveness-video" autoplay playsinline muted></video>
-        <canvas id="liveness-canvas" width="320" height="240"></canvas>
-        <div id="liveness-timer">10</div>
-        <div id="liveness-instruction">👁️ BLINK NOW</div>
-        <div id="liveness-status"></div>
-      </div>
-    </div>
-
-    <!-- STEP 5: MetaMask Wallet -->
-    <div class="form-step" id="step-5">
-      <p style="font-size:.82rem;color:var(--muted);line-height:1.7;margin-bottom:20px;font-weight:400">Connect your MetaMask wallet to authorize your voting transaction on the blockchain.</p>
-      <!-- <div style="text-align:center;padding:20px 0;">
-        <div style="font-size:3rem;margin-bottom:10px;">🦊</div>
-        <p style="font-size:.85rem;color:var(--text);margin-bottom:5px;">MetaMask Wallet</p>
-        <p style="font-size:.72rem;color:var(--muted);">Connect to sign your vote on-chain</p>
-      </div>
-      <button class="mm-btn" onclick="connectWallet()">🦊 Connect MetaMask</button>
-      <div class="wallet-status" id="walletStatus"></div>
-      <div class="divider">OR</div> -->
-      <button class="btn btn-accent" onclick="proceedToVote()">Proceed to Vote</button>
-      <button class="btn btn-outline" onclick="goStep(4)">← Back</button>
-    </div>
-
+<!-- Voting Status Modal -->
+<div class="modal-overlay" id="votingModal">
+  <div class="modal-box">
+    <h3 id="modalTitle">⏳ Voting Not Open</h3>
+    <p id="modalMessage">The administrator has not opened voting yet. Please check back soon.</p>
+    <button class="modal-close" id="modalCloseBtn">OK, I understand</button>
   </div>
 </div>
+
+<nav>
+  <a href="index.html" class="logo"><div class="logo-dot"></div>CivicChain</a>
+  <ul class="nav-links">
+    <li><a href="#search">🔍 Find Voter ID</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#features">Security</a></li>
+    <li><a href="results.html">📊 Results</a></li>
+    <li><a href="admin.html">⚙️ Admin</a></li>
+  </ul>
+  <a href="#" class="nav-cta" id="navVoteBtn">Cast Your Vote</a>
+</nav>
+
+<!-- Voting status banner (shown dynamically) -->
+<div class="voting-banner" id="votingBanner"></div>
+
+<section class="hero">
+  <div class="hero-tag" id="heroTag">
+    <span class="status-dot" id="statusDot" style="background:var(--warning)"></span>
+    Blockchain-secured · Awaiting admin setup
+  </div>
+  <h1 class="hero-title">
+    <span class="line1">DEMOCRACY</span><br>
+    <span class="line2">ON-CHAIN.</span><br>
+    <span class="line3">TAMPER-PROOF.</span>
+  </h1>
+  <p class="hero-desc">A decentralized e-voting platform where every ballot is cryptographically sealed, publicly verifiable, and permanently recorded on the blockchain. Your voice, immutably preserved.</p>
+  <div class="hero-actions">
+    <a href="#" class="btn-primary" id="heroStartVote">Start Voting</a>
+    <a href="#how" class="btn-ghost">Learn More</a>
+  </div>
+  <div class="hero-visual">
+    <div class="chain-viz">
+      <div class="block-card"><div class="block-num">BLOCK #4,829,103</div><div class="block-hash">0xa3f9...2c81</div><div class="block-votes">✓ 847 votes recorded</div></div>
+      <div class="block-card"><div class="block-num">BLOCK #4,829,104</div><div class="block-hash">0xb17e...9a42</div><div class="block-votes">✓ 1,203 votes recorded</div></div>
+      <div class="block-card"><div class="block-num">BLOCK #4,829,105</div><div class="block-hash">0xd4c2...7f13</div><div class="block-votes">✓ 991 votes recorded</div></div>
+      <div class="block-card"><div class="block-num">BLOCK #4,829,106</div><div class="block-hash">0xe8a1...3b57</div><div class="block-votes">● Processing...</div></div>
+      <div class="chain-line"></div><div class="chain-line"></div><div class="chain-line"></div>
+    </div>
+  </div>
+</section>
+
+<!-- VOTER ID SEARCH SECTION -->
+<section class="section search-section" id="search">
+  <div class="section-header"><div><div class="section-label">Verification</div><h2 class="section-title">Find Your Voter ID</h2></div></div>
+  
+  <div class="search-container">
+    <div class="search-box">
+      <input 
+        type="text" 
+        id="voterIdInput" 
+        class="voter-id-input" 
+        placeholder="Enter your Voter ID (e.g., VID-2024-001234)"
+        maxlength="50"
+      />
+      <button class="btn-primary search-btn" id="searchBtn">Search</button>
+    </div>
+    
+    <!-- Search Results -->
+    <div class="search-results" id="searchResults" style="display: none;">
+      <div class="result-card" id="resultCard">
+        <div class="result-status" id="resultStatus"></div>
+        <div class="result-details" id="resultDetails"></div>
+        <button class="btn-ghost close-result-btn" id="closeResultBtn">Search Again</button>
+      </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="search-loading" id="searchLoading" style="display: none;">
+      <div class="spinner"></div>
+      <p>Searching voter database...</p>
+    </div>
+
+    <!-- No Results Message -->
+    <div class="no-results" id="noResults" style="display: none;">
+      <p>❌ Voter ID not found in the system</p>
+      <p class="no-results-sub">Please verify your ID and try again</p>
+    </div>
+  </div>
+</section>
+
+<div class="ticker">
+  <div class="ticker-inner" id="ticker">
+    <span class="ticker-item">Block #4,829,106 confirmed</span>
+    <span class="ticker-item">Smart contract verified on Etherscan</span>
+    <span class="ticker-item">ZK-proof generation: 142ms avg</span>
+    <span class="ticker-item">Network validators: 1,200+ active</span>
+    <span class="ticker-item">Block #4,829,107 confirmed</span>
+    <span class="ticker-item">Gas price: 18 gwei</span>
+    <span class="ticker-item">Block #4,829,106 confirmed</span>
+    <span class="ticker-item">Smart contract verified on Etherscan</span>
+    <span class="ticker-item">ZK-proof generation: 142ms avg</span>
+    <span class="ticker-item">Network validators: 1,200+ active</span>
+  </div>
+</div>
+
+<section class="section" id="how">
+  <div class="section-header"><div><div class="section-label">Process</div><h2 class="section-title">How It Works</h2></div></div>
+  <div class="steps-grid">
+    <div class="step-card"><div class="step-num">// 01</div><div class="step-title">🔐 Authenticate</div><div class="step-desc">Verify your identity using your government-issued voter ID and OTP. Your credentials are hashed locally — we never store plain passwords.</div></div>
+    <div class="step-card"><div class="step-num">// 02</div><div class="step-title">🗳️ Cast Your Vote</div><div class="step-desc">Select your candidate from the ballot. Your choice is encrypted client-side using your unique session key before transmission.</div></div>
+    <div class="step-card"><div class="step-num">// 03</div><div class="step-title">⛓️ Blockchain Record</div><div class="step-desc">Your encrypted vote is sent to the smart contract. The transaction is mined and permanently stored on-chain.</div></div>
+    <div class="step-card"><div class="step-num">// 04</div><div class="step-title">✅ Verify Anytime</div><div class="step-desc">Use your transaction hash to independently verify your vote was counted correctly. Anyone can audit results in real time.</div></div>
+  </div>
+</section>
+
+<section class="section" id="features">
+  <div class="section-header"><div><div class="section-label">Security</div><h2 class="section-title">Built for Trust</h2></div></div>
+  <div class="features-grid">
+    <div class="feature-card"><div class="feature-icon-wrap">🔒</div><div class="feature-title">End-to-End Encryption</div><div class="feature-desc">Every vote is encrypted using AES-256 before leaving your browser. Not even election administrators can see individual choices.</div></div>
+    <div class="feature-card"><div class="feature-icon-wrap">👁️</div><div class="feature-title">Public Auditability</div><div class="feature-desc">All transactions are publicly visible on the blockchain. Independent auditors can verify results without compromising voter privacy.</div></div>
+    <div class="feature-card"><div class="feature-icon-wrap">🚫</div><div class="feature-title">Double-Vote Prevention</div><div class="feature-desc">Smart contract logic enforces one-vote-per-wallet rules. Attempting to vote twice will be automatically rejected by the network.</div></div>
+    <div class="feature-card"><div class="feature-icon-wrap">🧾</div><div class="feature-title">Immutable Records</div><div class="feature-desc">Once recorded on the blockchain, votes cannot be altered, deleted, or manipulated by any party — including platform operators.</div></div>
+    <div class="feature-card"><div class="feature-icon-wrap">🌐</div><div class="feature-title">Decentralized</div><div class="feature-desc">No single point of failure. The voting contract runs across thousands of nodes worldwide, ensuring 99.9%+ availability.</div></div>
+    <div class="feature-card"><div class="feature-icon-wrap">🪙</div><div class="feature-title">ZK-Proof Anonymity</div><div class="feature-desc">Zero-knowledge proofs ensure votes are valid without revealing voter identity. Privacy and verifiability without contradiction.</div></div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <h2 class="cta-title">Ready to make<br>your voice <em>count</em>?</h2>
+  <p class="cta-sub">Secure, verifiable, and permanent. Your vote is waiting.</p>
+  <a href="#" class="btn-primary" id="ctaVoteBtn">Log In & Vote Now</a>
+</section>
+
+<footer>
+  <div class="footer-copy">© 2026 CivicPulse — All rights reserved</div>
+  <div class="footer-links">
+    <a href="results.html">Live Results</a>
+    <a href="admin.html">Admin Panel</a>
+    <a href="login.html">Voter Login</a>
+  </div>
+</footer>
 
 <script>
-const API_BASE = "https://civicchain-1.onrender.com/api";
+// ═══════════════════════════════════════════════════════════════
+// CIVICCHAIN HOME PAGE - WITH VOTER ID SEARCH
+// ═══════════════════════════════════════════════════════════════
+
 // ─────────────────────────────────────────────
-// GLOBAL STATE
+// STORAGE KEYS
+// ─────────────────────────────────────────────
+const CC_KEYS = {
+  candidates   : 'cc_candidates',
+  voters       : 'cc_voters',
+  votes        : 'cc_votes',
+  locked       : 'cc_voting_locked',
+  expiry       : 'cc_voting_expiry',
+  admins       : 'cc_admins',
+  adminSession : 'cc_admin_session',
+  voterSession : 'cc_voter_session',
+};
+
+// ─────────────────────────────────────────────
+// LOCAL STORAGE HELPERS
+// ─────────────────────────────────────────────
+function ccGet(key) {
+  try {
+    return JSON.parse(localStorage.getItem(CC_KEYS[key]));
+  } catch {
+    return null;
+  }
+}
+
+function ccSet(key, value) {
+  localStorage.setItem(CC_KEYS[key], JSON.stringify(value));
+}
+
+// ─────────────────────────────────────────────
+// API
+// ─────────────────────────────────────────────
+const API_BASE = "https://civicchain-1.onrender.com/api";
+
+// ─────────────────────────────────────────────
+// API HELPERS
+// ─────────────────────────────────────────────
+async function getData(endpoint) {
+  const response = await fetch(API_BASE + endpoint, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" }
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+// ─────────────────────────────────────────────
+// SEARCH VOTER ID FUNCTION (SYNCED WITH LOGIN)
+// ─────────────────────────────────────────────
+async function searchVoterId(voterId) {
+  const input = document.getElementById("voterIdInput");
+  const loading = document.getElementById("searchLoading");
+  const results = document.getElementById("searchResults");
+  const noResults = document.getElementById("noResults");
+
+  // Reset display
+  results.style.display = "none";
+  noResults.style.display = "none";
+  loading.style.display = "block";
+
+  try {
+    // Trim and validate input
+    const cleanId = voterId.trim();
+
+    if (!cleanId) {
+      throw new Error("Please enter a Voter ID");
+    }
+
+    console.log("🔍 Searching for Voter ID:", cleanId);
+
+    // Use EXACT same API endpoint as login.html
+    // Format: GET /voters/{voterId}
+    const endpoint = `/voters/${encodeURIComponent(cleanId)}`;
+    console.log("📡 API Endpoint:", API_BASE + endpoint);
+
+    const response = await fetch(API_BASE + endpoint, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+
+    console.log("📥 API Response Status:", response.status);
+
+    loading.style.display = "none";
+
+    // Check if voter was found
+    if (!response.ok) {
+      console.log("❌ Voter not found (HTTP " + response.status + ")");
+      noResults.style.display = "block";
+      return;
+    }
+
+    // Parse voter data
+    const voter = await response.json();
+
+    console.log("✅ Voter data received:", voter);
+
+    // Validate voter object
+    if (voter && voter.voterId) {
+      displayVoterResult(voter);
+      results.style.display = "block";
+    } else {
+      // Invalid response format
+      console.warn("⚠️ Invalid voter object structure");
+      noResults.style.display = "block";
+    }
+
+  } catch (error) {
+    console.error("❌ Search error:", error);
+    loading.style.display = "none";
+    noResults.style.display = "block";
+    
+    const noResultsText = noResults?.querySelector("p");
+    if (noResultsText) {
+      noResultsText.textContent = "❌ " + (error.message || "Search failed");
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+// DISPLAY VOTER RESULT (SYNCED WITH LOGIN)
+// ─────────────────────────────────────────────
+function displayVoterResult(voter) {
+  const resultStatus = document.getElementById("resultStatus");
+  const resultDetails = document.getElementById("resultDetails");
+
+  if (resultStatus) {
+    resultStatus.innerHTML = "✅ Voter ID Found!";
+    resultStatus.style.color = "var(--success)";
+  }
+
+  // Build details HTML - match fields from login.html backend response
+  const details = [
+    { label: "Voter ID", value: voter.voterId || "N/A" },
+    { label: "Name", value: voter.name || "Not provided" },
+    { label: "Email", value: voter.email || "Not registered" },
+    { label: "Phone", value: voter.mobileNo ? maskPhone(voter.mobileNo) : "Not registered" },
+    { label: "Date of Birth", value: formatDate(voter.dob) },
+    { label: "Status", value: getVoterStatus(voter) },
+    { label: "Registration Date", value: formatDate(voter.createdAt) },
+  ];
+
+  if (resultDetails) {
+    resultDetails.innerHTML = details.map(d => `
+      <div class="result-detail-row">
+        <span class="result-detail-label">${d.label}</span>
+        <span class="result-detail-value">${d.value}</span>
+      </div>
+    `).join("");
+  }
+}
+
+// ─────────────────────────────────────────────
+// VOTER STATUS HELPER
+// ─────────────────────────────────────────────
+function getVoterStatus(voter) {
+  if (voter.hasVoted) {
+    return "✓ Already Voted";
+  }
+  if (voter.verified) {
+    return "✓ Verified - Ready to Vote";
+  }
+  return "⚠ Pending Verification";
+}
+
+// ─────────────────────────────────────────────
+// MASK PHONE NUMBER
+// ─────────────────────────────────────────────
+function maskPhone(phone) {
+  if (!phone || phone.length < 4) return phone;
+  return "***" + phone.slice(-4);
+}
+
+// ─────────────────────────────────────────────
+// FORMAT DATE HELPER
+// ─────────────────────────────────────────────
+function formatDate(dateStr) {
+  if (!dateStr) return "N/A";
+  try {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+// ─────────────────────────────────────────────
+// SAFE VOTING STATUS CHECK
+// ─────────────────────────────────────────────
+function isSafelyOpen(data) {
+  if (!data || typeof data !== "object") {
+    console.warn("⚠️  Invalid data structure");
+    return false;
+  }
+
+  const isOpenBoolean = data.isOpen === true;
+  const isOpenString = data.status === "OPEN";
+  const isOpenAlt = data.votingOpen === true;
+  
+  return isOpenBoolean || isOpenString || isOpenAlt;
+}
+
+// ─────────────────────────────────────────────
+// GLOBAL VOTING STATE
 // ─────────────────────────────────────────────
 let votingState = {
-  open: false,
-  expiry: 0,
+  isOpen: false,
+  expiryTime: 0,
+  serverTime: 0,
   lastFetch: 0
 };
 
-let verifiedVoter = null;
-let currentOtp = null;
-let biometricVerified = false;
-
+// ─────────────────────────────────────────────
+// SEED LOCAL DATA
+// ─────────────────────────────────────────────
+function seedData() {
+  if (!ccGet('candidates')) {
+    ccSet('candidates', []);
+  }
+  if (!ccGet('voters')) {
+    ccSet('voters', []);
+  }
+  if (!ccGet('votes')) {
+    ccSet('votes', []);
+  }
+  if (!ccGet('admins')) {
+    ccSet('admins', [{
+      email: "admin@civicchain.com",
+      passHash: "",
+      token: ""
+    }]);
+  }
+}
 
 // ─────────────────────────────────────────────
-// FETCH VOTING STATUS (FIXED)
+// FETCH VOTING STATUS
 // ─────────────────────────────────────────────
 async function fetchVotingStatus() {
-
   try {
+    console.log("📡 Fetching voting status...");
 
-    console.log(
-      "📡 Fetching voting status..."
-    );
+    const data = await getData('/voting/status');
+    console.log("🗳️ RAW API RESPONSE:", data);
 
-    const res = await fetch(
-      `${API_BASE}/voting/status`
-    );
+    const isOpen = isSafelyOpen(data);
+    const expiry = Number(data.expiryMillis || 0);
+    const now = Date.now();
+    const remaining = expiry - now;
 
-    if (!res.ok) {
+    votingState.serverTime = Number(data.serverTime || now);
+    votingState.expiryTime = expiry;
+    votingState.lastFetch = now;
+    votingState.isOpen = isOpen;
 
-      throw new Error(
-        `HTTP ${res.status}`
-      );
+    if (isOpen && expiry > 0 && remaining < -5000) {
+      console.log("⏰ Voting expired");
+      votingState.isOpen = false;
     }
 
-    const data = await res.json();
-
-    console.log(
-      "🗳️ STATUS RESPONSE:",
-      data
-    );
-
-    // FIXED:
-    // backend returns:
-    // isOpen
-    // expiryMillis
-    // status
-
-    votingState.open =
-      data.isOpen === true ||
-      data.status === "OPEN";
-
-    votingState.expiry =
-      Number(
-        data.expiryMillis || 0
-      );
-
-    votingState.lastFetch =
-      Date.now();
-
-    console.log(
-      "✅ UPDATED STATE:",
-      votingState
-    );
+    console.log("✅ FINAL STATE:", votingState);
+    return votingState;
 
   } catch (err) {
-
-    console.error(
-      "❌ Voting status error:",
-      err
-    );
+    console.error("❌ Fetch failed:", err.message);
+    return votingState;
   }
 }
 
-
 // ─────────────────────────────────────────────
-// CHECK IF VOTING OPEN
+// FORMAT REMAINING TIME
 // ─────────────────────────────────────────────
-function isVotingOpen() {
+function formatRemainingTime(ms) {
+  if (ms <= 0) return "00:00:00";
 
-  const now = Date.now();
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
 
-  const open =
-    votingState.open &&
-    (
-      votingState.expiry === 0 ||
-      votingState.expiry >
-      now - 5000
-    );
-
-  console.log(
-    "🔎 CHECK OPEN:",
-    open
-  );
-
-  return open;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-
 // ─────────────────────────────────────────────
-// CHECK GATE
+// UPDATE UI
 // ─────────────────────────────────────────────
-async function checkVotingGate() {
-
+async function updateVotingUI() {
   await fetchVotingStatus();
 
-  const overlay =
-    document.getElementById(
-      "lockedOverlay"
-    );
+  const open = votingState.isOpen;
+  console.log("🎨 Updating UI | Open:", open);
 
-  if (!overlay) return;
+  const dot = document.getElementById("statusDot");
+  const tag = document.getElementById("heroTag");
+  const banner = document.getElementById("votingBanner");
 
-  overlay.classList.toggle(
-    "show",
-    !isVotingOpen()
-  );
-}
+  if (open) {
+    const remaining = votingState.expiryTime - Date.now();
+    const timeStr = formatRemainingTime(remaining);
 
-
-// ─────────────────────────────────────────────
-// UTILS
-// ─────────────────────────────────────────────
-function normalizeDate(d) {
-
-  const date = new Date(d);
-
-  return isNaN(date)
-    ? null
-    : date.toISOString()
-        .split("T")[0];
-}
-
-function showAlert(type, msg) {
-
-  const el =
-    document.getElementById(
-      "alert"
-    );
-
-  if (!el) return;
-
-  el.className =
-    `alert alert-${type} show`;
-
-  el.innerHTML = msg;
-}
-
-
-// ─────────────────────────────────────────────
-// NAVIGATION
-// ─────────────────────────────────────────────
-function goStep(n) {
-
-  // Stop liveness camera when leaving step-4
-  const step4El = document.getElementById('step-4');
-  if (step4El && step4El.classList.contains('active')) {
-    stopLivenessCamera();
-  }
-
-  document
-    .querySelectorAll(".form-step")
-    .forEach(s =>
-      s.classList.remove("active")
-    );
-
-  document
-    .getElementById(`step-${n}`)
-    ?.classList.add("active");
-
-  document
-    .querySelectorAll(".step-ind")
-    .forEach((el, i) => {
-
-      el.classList.remove(
-        "active",
-        "done"
-      );
-
-      if (i + 1 < n) {
-        el.classList.add("done");
-      }
-
-      if (i + 1 === n) {
-        el.classList.add("active");
-      }
-    });
-
-  document
-    .querySelectorAll(".step-line")
-    .forEach((el, i) => {
-
-      el.classList.toggle(
-        "done",
-        i + 1 < n
-      );
-    });
-
-  // Start liveness camera when entering step-4
-  if (n === 4) {
-    startLivenessCamera();
+    if (dot) dot.style.background = "var(--success)";
+    if (tag) tag.innerHTML = `<span class="status-dot" style="background:var(--success)"></span>Voting is LIVE — closes in ${timeStr}`;
+    if (banner) {
+      banner.className = "voting-banner open";
+      banner.textContent = `🗳️ VOTING IS OPEN — closes in ${timeStr}`;
+    }
+  } else {
+    if (dot) dot.style.background = "var(--error)";
+    if (tag) tag.innerHTML = `<span class="status-dot" style="background:var(--error)"></span>Voting not active`;
+    if (banner) {
+      banner.className = "voting-banner closed";
+      banner.textContent = "🔒 Voting is currently closed";
+    }
   }
 }
 
+// ─────────────────────────────────────────────
+// MODAL SETUP
+// ─────────────────────────────────────────────
+const modal = document.getElementById("votingModal");
+const modalCloseBtn = document.getElementById("modalCloseBtn");
+
+if (modalCloseBtn) {
+  modalCloseBtn.onclick = () => modal?.classList.remove("active");
+}
+
+if (modal) {
+  modal.addEventListener("click", e => {
+    if (e.target === modal) modal.classList.remove("active");
+  });
+}
 
 // ─────────────────────────────────────────────
-// STEP 1
+// HANDLE VOTE CLICK
 // ─────────────────────────────────────────────
-async function goStep2() {
-
-  const vid =
-    fVoterId.value.trim();
-
-  const dob =
-    fDob.value.trim();
-
-  const phone =
-    fPhone.value
-      .replace(/\D/g, "");
-
-  if (!vid) {
-
-    return showAlert(
-      "e",
-      "❌ Enter voter ID"
-    );
-  }
-
-  btn1.textContent =
-    "Checking...";
-
-  btn1.disabled = true;
+async function handleVoteClick(e) {
+  e.preventDefault();
 
   try {
+    console.log("🖱️ Vote button clicked");
 
-    const res = await fetch(
-      `${API_BASE}/voters/${vid}`
-    );
+    const data = await getData('/voting/status');
+    console.log("🗳️ DIRECT API CHECK:", data);
 
-    if (!res.ok) {
+    const open = isSafelyOpen(data);
+    console.log("✅ Voting open?", open);
 
-      return showAlert(
-        "e",
-        "❌ Voter not found"
-      );
-    }
-
-    const voter =
-      await res.json();
-
-    // DOB
-    if (!voter.dob) {
-
-      return showAlert(
-        "e",
-        "❌ DOB missing in system"
-      );
-    }
-
-    const dbDOB =
-      voter.dob.substring(0, 10);
-
-    if (dob !== dbDOB) {
-
-      return showAlert(
-        "e",
-        `❌ DOB mismatch`
-      );
-    }
-
-    // PHONE
-    if (!voter.mobileNo) {
-
-      return showAlert(
-        "e",
-        "❌ Mobile missing"
-      );
-    }
-
-    if (
-      phone !== voter.mobileNo
-    ) {
-
-      return showAlert(
-        "e",
-        "❌ Phone mismatch"
-      );
-    }
-
-    // ALREADY VOTED
-    if (voter.hasVoted) {
-
-      return showAlert(
-        "e",
-        "⚠️ Already voted"
-      );
-    }
-
-    verifiedVoter = voter;
-
-    showAlert(
-      "s",
-      `✅ Verified: ${voter.name}`
-    );
-
-    setTimeout(() => {
-
-      sendOtpToVoter(vid);
-
-    }, 500);
-
-  } catch (err) {
-
-    console.error(err);
-
-    showAlert(
-      "e",
-      "❌ Server error"
-    );
-
-  } finally {
-
-    btn1.textContent =
-      "Verify Identity & Send OTP";
-
-    btn1.disabled = false;
-  }
-}
-
-
-// ─────────────────────────────────────────────
-// SEND OTP
-// ─────────────────────────────────────────────
-async function sendOtpToVoter(voterId) {
-
-  try {
-
-    const res = await fetch(
-      `${API_BASE}/voters/${voterId}/send-otp`,
-      {
-        method: "POST"
-      }
-    );
-
-    if (!res.ok) {
-
-      return showAlert(
-        "e",
-        "❌ OTP failed"
-      );
-    }
-
-    const data = await res.json();
-    currentOtp = data.otp;
-
-    goStep(2);
-
-  } catch {
-
-    showAlert(
-      "e",
-      "❌ OTP error"
-    );
-  }
-}
-
-
-// ─────────────────────────────────────────────
-// VERIFY OTP
-// ─────────────────────────────────────────────
-async function goStep3() {
-
-  const otp =
-    [...document.querySelectorAll(".otp-digit")]
-      .map(i => i.value)
-      .join("");
-
-  if (otp.length !== 6) {
-
-    return showAlert(
-      "e",
-      "❌ Enter valid 6-digit OTP"
-    );
-  }
-
-  btn2.textContent =
-    "Verifying...";
-
-  btn2.disabled = true;
-
-  try {
-
-    console.log(
-      "📡 Sending OTP verify request..."
-    );
-
-    const res = await fetch(
-      `${API_BASE}/voters/${verifiedVoter.voterId}/verify-otp`,
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type":
-            "application/json"
-        },
-
-        body: JSON.stringify({
-          otp: otp
-        })
-      }
-    );
-
-    console.log(
-      "📥 RESPONSE STATUS:",
-      res.status
-    );
-
-    // try parsing response safely
-    let data = null;
-
-    try {
-
-      data = await res.json();
-
-    } catch {
-
-      console.warn(
-        "⚠️ Non-JSON response"
-      );
-    }
-
-    console.log(
-      "📥 VERIFY RESPONSE:",
-      data
-    );
-
-    // HARD CHECK
-    const success =
-      res.ok &&
-      (
-        data?.success === true ||
-        data?.verified === true ||
-        data?.message === "OTP verified successfully"
-      );
-
-    if (!success) {
-
-      return showAlert(
-        "e",
-        data?.message ||
-        "❌ Invalid OTP"
-      );
-    }
-
-    showAlert(
-      "s",
-      "✅ OTP Verified"
-    );
-
-    console.log(
-      "✅ OTP SUCCESS"
-    );
-
-    setTimeout(() => {
-
-      goStep(3);
-
-    }, 500);
-
-  } catch (err) {
-
-    console.error(
-      "❌ OTP VERIFY ERROR:",
-      err
-    );
-
-    showAlert(
-      "e",
-      "❌ OTP verification failed"
-    );
-
-  } finally {
-
-    btn2.textContent =
-      "Verify OTP";
-
-    btn2.disabled = false;
-  }
-}
-// ─────────────────────────────────────────────
-// REAL BIOMETRIC AUTHENTICATION (WebAuthn)
-// ─────────────────────────────────────────────
-async function startBiometricVerification() {
-
-  const btn = document.getElementById("btn3");
-  const skipBtn = document.getElementById("skipBtn");
-
-  btn.textContent = "Authenticating...";
-  btn.disabled = true;
-
-  // Check if WebAuthn is supported
-  if (!window.PublicKeyCredential) {
-    showAlert("e", "⚠️ WebAuthn not supported on this browser");
-    btn.textContent = "🔒 Verify Biometric";
-    btn.disabled = false;
-    if (skipBtn) { skipBtn.style.display = "block"; }
-    return;
-  }
-
-  // Check if platform authenticator (fingerprint/face) is available
-  try {
-    const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-
-    if (!available) {
-      showAlert("i", "ℹ️ No biometric device found — use security key or skip");
-      btn.textContent = "🔒 Verify Biometric";
-      btn.disabled = false;
-      if (skipBtn) { skipBtn.style.display = "block"; }
-      return;
-    }
-  } catch (checkErr) {
-    console.warn("Platform authenticator check failed:", checkErr);
-  }
-
-  try {
-    showAlert("i", "🔐 Touch your fingerprint sensor or look at camera...");
-
-    // Generate a challenge (in production this comes from server)
-    const challengeBuffer = new Uint8Array(32);
-    crypto.getRandomValues(challengeBuffer);
-
-    const oderId = verifiedVoter ? verifiedVoter.voterId : "voter";
-    const userIdBuffer = new TextEncoder().encode(oderId);
-
-    // WebAuthn credential creation options
-    const createOptions = {
-      publicKey: {
-        challenge: challengeBuffer,
-        rp: {
-          name: "CivicChain Voting Platform",
-          id: window.location.hostname
-        },
-        user: {
-          id: userIdBuffer,
-          name: oderId,
-          displayName: verifiedVoter ? verifiedVoter.name : "Voter"
-        },
-        pubKeyCredParams: [
-          { type: "public-key", alg: -7 },   // ES256
-          { type: "public-key", alg: -257 }  // RS256
-        ],
-        authenticatorSelection: {
-          authenticatorAttachment: "platform",   // Force built-in biometric
-          userVerification: "required",          // Require fingerprint/face
-          residentKey: "preferred"
-        },
-        timeout: 60000,
-        attestation: "none"
-      }
-    };
-
-    // This triggers the real fingerprint/face prompt from the OS
-    const credential = await navigator.credentials.create(createOptions);
-
-    if (credential) {
-      biometricVerified = true;
-
-      // Save voter ID to sessionStorage for vote.html
-      if (verifiedVoter && verifiedVoter.voterId) {
-        sessionStorage.setItem('voterVid', verifiedVoter.voterId);
-        sessionStorage.setItem('voterName', verifiedVoter.name || '');
-      }
-
-      showAlert("s", "✅ Biometric verified — Access granted");
-
-      setTimeout(() => {
-        goStep(4);
-      }, 800);
-    }
-
-  } catch (err) {
-    console.error("Biometric error:", err);
-
-    if (err.name === "NotAllowedError") {
-      showAlert("e", "❌ Biometric cancelled — try again");
-    } else if (err.name === "SecurityError") {
-      showAlert("e", "⚠️ Security error — try HTTPS or localhost");
-      if (skipBtn) { skipBtn.style.display = "block"; }
+    if (open) {
+      console.log("✅ PROCEEDING TO LOGIN");
+      window.location.href = "login.html";
     } else {
-      showAlert("e", "❌ Biometric failed: " + (err.message || "Unknown error"));
-      if (skipBtn) { skipBtn.style.display = "block"; }
+      console.log("❌ SHOWING MODAL");
+      const modalTitle = document.getElementById("modalTitle");
+      const modalMsg = document.getElementById("modalMessage");
+      
+      if (modalTitle) modalTitle.textContent = "🔒 Voting Not Open";
+      if (modalMsg) modalMsg.textContent = "The election administrator has not opened voting yet. Please check back soon.";
+      modal?.classList.add("active");
     }
-
-    btn.textContent = "🔒 Verify Biometric";
-    btn.disabled = false;
+  } catch (err) {
+    console.error("Vote click error:", err);
+    alert("Failed to check voting status: " + err.message);
   }
 }
-
-// Fallback skip (only visible if biometrics unavailable)
-function skipBiometric() {
-  biometricVerified = true;
-  if (verifiedVoter && verifiedVoter.voterId) {
-    sessionStorage.setItem('voterVid', verifiedVoter.voterId);
-    sessionStorage.setItem('voterName', verifiedVoter.name || '');
-  }
-  showAlert("s", "✅ Access granted (demo bypass)");
-  setTimeout(() => { goStep(4); }, 600);
-}
-
 
 // ─────────────────────────────────────────────
-// CURSOR
+// SEARCH BUTTON LISTENERS
+// ─────────────────────────────────────────────
+const searchBtn = document.getElementById("searchBtn");
+const voterIdInput = document.getElementById("voterIdInput");
+const closeResultBtn = document.getElementById("closeResultBtn");
+
+if (searchBtn) {
+  searchBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    const voterId = voterIdInput.value;
+    searchVoterId(voterId);
+  });
+}
+
+if (voterIdInput) {
+  voterIdInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      const voterId = voterIdInput.value;
+      searchVoterId(voterId);
+    }
+  });
+}
+
+if (closeResultBtn) {
+  closeResultBtn.addEventListener("click", () => {
+    document.getElementById("searchResults").style.display = "none";
+    document.getElementById("noResults").style.display = "none";
+    voterIdInput.value = "";
+    voterIdInput.focus();
+  });
+}
+
+// ─────────────────────────────────────────────
+// ATTACH VOTE BUTTONS
+// ─────────────────────────────────────────────
+["navVoteBtn", "heroStartVote", "ctaVoteBtn"].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener("click", handleVoteClick);
+});
+
+// ─────────────────────────────────────────────
+// CURSOR EFFECT
 // ─────────────────────────────────────────────
 function initCursor() {
+  const cursor = document.getElementById("cursor");
+  const ring = document.getElementById("cursorRing");
 
-  const cursor =
-    document.getElementById(
-      "cursor"
-    );
+  if (!cursor || !ring) return;
 
-  const ring =
-    document.getElementById(
-      "cursorRing"
-    );
+  let mouseX = window.innerWidth / 2;
+  let mouseY = window.innerHeight / 2;
+  let ringX = mouseX;
+  let ringY = mouseY;
 
-  if (!cursor || !ring) {
-    return;
+  document.addEventListener("mousemove", e => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    cursor.style.transform = `translate(${mouseX - 6}px, ${mouseY - 6}px)`;
+  });
+
+  function animateRing() {
+    ringX += (mouseX - ringX) * 0.18;
+    ringY += (mouseY - ringY) * 0.18;
+    ring.style.transform = `translate(${ringX - 18}px, ${ringY - 18}px)`;
+    requestAnimationFrame(animateRing);
   }
 
-  let x = 0;
-  let y = 0;
+  animateRing();
 
-  document.addEventListener(
-    "mousemove",
-    e => {
-
-      x = e.clientX;
-      y = e.clientY;
-
-      cursor.style.transform =
-        `translate(${x - 6}px, ${y - 6}px)`;
-
-      ring.style.transform =
-        `translate(${x - 18}px, ${y - 18}px)`;
-    }
-  );
-}
-
-
-// ─────────────────────────────────────────────
-// OTP INPUTS
-// ─────────────────────────────────────────────
-function setupOtpInputs() {
-
-  document
-    .querySelectorAll(".otp-digit")
-    .forEach((inp, i, arr) => {
-
-      inp.addEventListener(
-        "input",
-        () => {
-
-          inp.value =
-            inp.value.replace(
-              /\D/g,
-              ""
-            );
-
-          if (
-            inp.value &&
-            i < arr.length - 1
-          ) {
-
-            arr[i + 1].focus();
-          }
-        }
-      );
-
-      inp.addEventListener(
-        "keydown",
-        e => {
-
-          if (
-            e.key === "Backspace" &&
-            !inp.value &&
-            i > 0
-          ) {
-
-            arr[i - 1].focus();
-          }
-        }
-      );
-    });
-}
-
-
-// ─────────────────────────────────────────────
-// INIT
-// ─────────────────────────────────────────────
-document.addEventListener(
-  "DOMContentLoaded",
-  async () => {
-
-    console.log(
-      "🚀 Login page initialized"
-    );
-
-    initCursor();
-
-    setupOtpInputs();
-
-    await checkVotingGate();
-
-    setInterval(
-      checkVotingGate,
-      3000
-    );
-  }
-);
-
-// ─────────────────────────────────────────────
-// LIVENESS CHECK (STEP 4)
-// ─────────────────────────────────────────────
-let blinkDetected = false;
-let consecutiveClosedFrames = 0;
-let livenessInterval = null;
-let livenessCamera = null;
-let livenessFaceMesh = null;
-
-const LEFT_EYE = [362, 385, 387, 263, 373, 380];
-const RIGHT_EYE = [33, 160, 158, 133, 153, 144];
-
-function calculateEAR(landmarks, eyeIndices) {
-  const p1 = { x: landmarks[eyeIndices[0]].x, y: landmarks[eyeIndices[0]].y };
-  const p2 = { x: landmarks[eyeIndices[1]].x, y: landmarks[eyeIndices[1]].y };
-  const p3 = { x: landmarks[eyeIndices[2]].x, y: landmarks[eyeIndices[2]].y };
-  const p4 = { x: landmarks[eyeIndices[3]].x, y: landmarks[eyeIndices[3]].y };
-  const p5 = { x: landmarks[eyeIndices[4]].x, y: landmarks[eyeIndices[4]].y };
-  const p6 = { x: landmarks[eyeIndices[5]].x, y: landmarks[eyeIndices[5]].y };
-  const v1 = Math.hypot(p2.x - p6.x, p2.y - p6.y);
-  const v2 = Math.hypot(p3.x - p5.x, p3.y - p5.y);
-  const h = Math.hypot(p1.x - p4.x, p1.y - p4.y);
-  return (v1 + v2) / (2.0 * h);
-}
-
-function startLivenessCamera() {
-  blinkDetected = false;
-  consecutiveClosedFrames = 0;
-  document.getElementById('liveness-timer').textContent = '10';
-  document.getElementById('liveness-instruction').textContent = '👁️ BLINK NOW';
-  document.getElementById('liveness-instruction').style.animation = 'pulse 1.5s infinite';
-  const statusEl = document.getElementById('liveness-status');
-  statusEl.textContent = '';
-  statusEl.style.color = '';
-
-  let seconds = 10;
-  livenessInterval = setInterval(() => {
-    seconds--;
-    document.getElementById('liveness-timer').textContent = seconds;
-    if (seconds <= 0 && !blinkDetected) {
-      livenessFail();
-    }
-  }, 1000);
-
-  try {
-    livenessFaceMesh = new FaceMesh({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+  document.querySelectorAll("a, button").forEach(el => {
+    el.addEventListener("mouseenter", () => {
+      ring.style.width = "56px";
+      ring.style.height = "56px";
     });
 
-    livenessFaceMesh.setOptions({
-      maxNumFaces: 1,
-      refineLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
+    el.addEventListener("mouseleave", () => {
+      ring.style.width = "36px";
+      ring.style.height = "36px";
     });
-
-    const canvas = document.getElementById('liveness-canvas');
-    const ctx = canvas.getContext('2d');
-    const video = document.getElementById('liveness-video');
-
-    livenessFaceMesh.onResults((results) => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.save();
-      ctx.scale(-1, 1);
-      ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-      ctx.restore();
-
-      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-        const landmarks = results.multiFaceLandmarks[0];
-        const leftEAR = calculateEAR(landmarks, LEFT_EYE);
-        const rightEAR = calculateEAR(landmarks, RIGHT_EYE);
-        const avgEAR = (leftEAR + rightEAR) / 2;
-
-        if (avgEAR < 0.15) {
-          consecutiveClosedFrames++;
-        } else {
-          if (consecutiveClosedFrames >= 2) {
-            blinkDetected = true;
-            livenessPass();
-            return;
-          }
-          consecutiveClosedFrames = 0;
-        }
-      } else {
-        document.getElementById('liveness-status').textContent = 'No face detected';
-      }
-    });
-
-    livenessCamera = new Camera(video, {
-      onFrame: async () => {
-        await livenessFaceMesh.send({ image: video });
-      },
-      width: 320,
-      height: 240
-    });
-    livenessCamera.start();
-  } catch (err) {
-    console.error('Camera error:', err);
-    document.getElementById('liveness-status').textContent = '❌ Camera error';
-  }
-}
-
-function stopLivenessCamera() {
-  if (livenessInterval) {
-    clearInterval(livenessInterval);
-    livenessInterval = null;
-  }
-  if (livenessCamera) {
-    try { livenessCamera.stop(); } catch (e) { /* ignore */ }
-    livenessCamera = null;
-  }
-  const video = document.getElementById('liveness-video');
-  if (video && video.srcObject) {
-    try {
-      video.srcObject.getTracks().forEach(t => t.stop());
-    } catch (e) { /* ignore */ }
-    video.srcObject = null;
-  }
-  livenessFaceMesh = null;
-}
-
-function livenessPass() {
-  stopLivenessCamera();
-  const statusEl = document.getElementById('liveness-status');
-  statusEl.textContent = '✅ LIVENESS VERIFIED';
-  statusEl.style.color = '#10b981';
-  document.getElementById('liveness-instruction').textContent = '✅ Verified';
-  document.getElementById('liveness-instruction').style.animation = 'none';
-  setTimeout(() => goStep(5), 1500);
-}
-
-function livenessFail() {
-  stopLivenessCamera();
-  const statusEl = document.getElementById('liveness-status');
-  statusEl.textContent = '❌ LIVENESS FAILED — Redirecting...';
-  statusEl.style.color = '#ef4444';
-  setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+  });
 }
 
 // ─────────────────────────────────────────────
-// WALLET (STEP 5)
+// INITIALIZATION
 // ─────────────────────────────────────────────
-async function connectWallet() {
-  if (typeof window.ethereum === 'undefined') {
-    showAlert('e', '❌ MetaMask not detected. Please install MetaMask.');
-    return;
-  }
-  try {
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    const statusEl = document.getElementById('walletStatus');
-    const addr = accounts[0];
-    statusEl.textContent = `✅ Connected: ${addr.substring(0,6)}...${addr.substring(38)}`;
-    statusEl.classList.add('show');
-    showAlert('s', '✅ Wallet connected successfully');
-  } catch (err) {
-    showAlert('e', '❌ Wallet connection failed or rejected');
-  }
-}
+window.addEventListener("DOMContentLoaded", async () => {
+  console.log("🚀 Home page initialized");
 
-function proceedToVote() {
-  if (verifiedVoter && verifiedVoter.voterId) {
-    sessionStorage.setItem('voterVid', verifiedVoter.voterId);
-    sessionStorage.setItem('voterName', verifiedVoter.name || '');
-  }
-  window.location.href = 'vote.html';
-}
+  seedData();
+  initCursor();
+
+  await updateVotingUI();
+
+  setInterval(async () => {
+    await updateVotingUI();
+  }, 2000);
+});
 </script>
 </body>
 </html>
