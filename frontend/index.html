@@ -101,8 +101,41 @@
     .voting-banner{position:relative;z-index:1;text-align:center;padding:10px 60px;font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.1em;display:none;}
     .voting-banner.open{display:block;background:rgba(16,185,129,.08);border-top:1px solid rgba(16,185,129,.2);border-bottom:1px solid rgba(16,185,129,.2);color:var(--success);}
     .voting-banner.closed{display:block;background:rgba(239,68,68,.06);border-top:1px solid rgba(239,68,68,.15);border-bottom:1px solid rgba(239,68,68,.15);color:var(--error);}
+    
+    /* SEARCH SECTION STYLES */
+    .search-section{padding:80px 60px !important;}
+    .search-container{max-width:700px;margin:0 auto;}
+    .search-box{display:flex;gap:12px;margin-bottom:40px;}
+    .voter-id-input{flex:1;padding:16px 20px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'Syne',sans-serif;font-size:1rem;border-radius:4px;transition:border-color .2s;}
+    .voter-id-input::placeholder{color:var(--muted);}
+    .voter-id-input:focus{outline:none;border-color:var(--accent);}
+    .search-btn{padding:16px 40px !important;margin:0;}
+    
+    /* Search Results Card */
+    .search-results{animation:fadeSlideUp .5s ease;}
+    .result-card{background:var(--surface);border:2px solid var(--success);padding:40px;border-radius:8px;text-align:center;}
+    .result-status{font-size:2rem;margin-bottom:20px;}
+    .result-details{margin-bottom:30px;text-align:left;}
+    .result-detail-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+    .result-detail-row:last-child{border-bottom:none;}
+    .result-detail-label{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.85rem;font-weight:600;}
+    .result-detail-value{color:var(--text);font-weight:600;word-break:break-all;}
+    
+    /* Loading Spinner */
+    .search-loading{text-align:center;padding:40px;}
+    .spinner{width:50px;height:50px;border:3px solid var(--border);border-top:3px solid var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 20px;}
+    @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+    .search-loading p{color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.85rem;}
+    
+    /* No Results */
+    .no-results{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);padding:30px;border-radius:8px;text-align:center;}
+    .no-results p{color:var(--muted);margin-bottom:12px;font-size:.95rem;}
+    .no-results-sub{color:var(--error) !important;font-weight:600;}
+    
+    .close-result-btn{margin-top:20px;}
+    
     @media(max-width:1100px){.hero-visual{display:none;}.steps-grid{grid-template-columns:repeat(2,1fr);}.features-grid{grid-template-columns:repeat(2,1fr);}}
-    @media(max-width:768px){nav{padding:16px 24px;}.nav-links{display:none;}.hero,.section{padding-left:24px;padding-right:24px;}.steps-grid,.features-grid{grid-template-columns:1fr;}.stats-bar{flex-direction:column;}}
+    @media(max-width:768px){nav{padding:16px 24px;}.nav-links{display:none;}.hero,.section{padding-left:24px;padding-right:24px;}.steps-grid,.features-grid{grid-template-columns:1fr;}.stats-bar{flex-direction:column;}.search-section{padding:60px 24px !important;}.search-box{flex-direction:column;}.voter-id-input{width:100%;}}
   </style>
 </head>
 <body>
@@ -121,6 +154,7 @@
 <nav>
   <a href="index.html" class="logo"><div class="logo-dot"></div>CivicChain</a>
   <ul class="nav-links">
+    <li><a href="#search">🔍 Find Voter ID</a></li>
     <li><a href="#how">How It Works</a></li>
     <li><a href="#features">Security</a></li>
     <li><a href="results.html">📊 Results</a></li>
@@ -158,6 +192,44 @@
   </div>
 </section>
 
+<!-- VOTER ID SEARCH SECTION -->
+<section class="section search-section" id="search">
+  <div class="section-header"><div><div class="section-label">Verification</div><h2 class="section-title">Find Your Voter ID</h2></div></div>
+  
+  <div class="search-container">
+    <div class="search-box">
+      <input 
+        type="text" 
+        id="voterIdInput" 
+        class="voter-id-input" 
+        placeholder="Enter your Voter ID (e.g., VID-2024-001234)"
+        maxlength="50"
+      />
+      <button class="btn-primary search-btn" id="searchBtn">Search</button>
+    </div>
+    
+    <!-- Search Results -->
+    <div class="search-results" id="searchResults" style="display: none;">
+      <div class="result-card" id="resultCard">
+        <div class="result-status" id="resultStatus"></div>
+        <div class="result-details" id="resultDetails"></div>
+        <button class="btn-ghost close-result-btn" id="closeResultBtn">Search Again</button>
+      </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="search-loading" id="searchLoading" style="display: none;">
+      <div class="spinner"></div>
+      <p>Searching voter database...</p>
+    </div>
+
+    <!-- No Results Message -->
+    <div class="no-results" id="noResults" style="display: none;">
+      <p>❌ Voter ID not found in the system</p>
+      <p class="no-results-sub">Please verify your ID and try again</p>
+    </div>
+  </div>
+</section>
 
 <div class="ticker">
   <div class="ticker-inner" id="ticker">
@@ -213,13 +285,8 @@
 
 <script>
 // ═══════════════════════════════════════════════════════════════
-// CIVICCHAIN HOME PAGE - VOTING STATUS BUG FIX
+// CIVICCHAIN HOME PAGE - WITH VOTER ID SEARCH
 // ═══════════════════════════════════════════════════════════════
-// ISSUE FIXED:
-// Modal was showing even though admin opened voting
-// FIX: Improved API response parsing and status logic
-// ═══════════════════════════════════════════════════════════════
-
 
 // ─────────────────────────────────────────────
 // STORAGE KEYS
@@ -235,83 +302,178 @@ const CC_KEYS = {
   voterSession : 'cc_voter_session',
 };
 
-
 // ─────────────────────────────────────────────
 // LOCAL STORAGE HELPERS
 // ─────────────────────────────────────────────
 function ccGet(key) {
   try {
-    return JSON.parse(
-      localStorage.getItem(CC_KEYS[key])
-    );
+    return JSON.parse(localStorage.getItem(CC_KEYS[key]));
   } catch {
     return null;
   }
 }
 
 function ccSet(key, value) {
-  localStorage.setItem(
-    CC_KEYS[key],
-    JSON.stringify(value)
-  );
+  localStorage.setItem(CC_KEYS[key], JSON.stringify(value));
 }
-
 
 // ─────────────────────────────────────────────
 // API
 // ─────────────────────────────────────────────
-  const API_BASE = "https://civicchain-1.onrender.com/api";
+const API_BASE = "https://civicchain-1.onrender.com/api";
 
 // ─────────────────────────────────────────────
 // API HELPERS
 // ─────────────────────────────────────────────
 async function getData(endpoint) {
-  const response = await fetch(
-    API_BASE + endpoint,
-    {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json"
-      }
-    }
-  );
+  const response = await fetch(API_BASE + endpoint, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" }
+  });
 
   if (!response.ok) {
-    throw new Error(
-      `HTTP ${response.status}`
-    );
+    throw new Error(`HTTP ${response.status}`);
   }
 
   return await response.json();
 }
 
+// ─────────────────────────────────────────────
+// SEARCH VOTER ID FUNCTION
+// ─────────────────────────────────────────────
+async function searchVoterId(voterId) {
+  const input = document.getElementById("voterIdInput");
+  const loading = document.getElementById("searchLoading");
+  const results = document.getElementById("searchResults");
+  const noResults = document.getElementById("noResults");
+
+  // Reset display
+  results.style.display = "none";
+  noResults.style.display = "none";
+  loading.style.display = "block";
+
+  try {
+    // Trim and validate input
+    const cleanId = voterId.trim().toUpperCase();
+
+    if (!cleanId) {
+      throw new Error("Please enter a Voter ID");
+    }
+
+    console.log("🔍 Searching for Voter ID:", cleanId);
+
+    // Get voters from storage
+    const voters = ccGet('voters') || [];
+
+    // Search in local storage first
+    let voter = voters.find(v => 
+      v.voterId && v.voterId.toUpperCase() === cleanId
+    );
+
+    // If not found locally, try API
+    if (!voter) {
+      console.log("📡 Checking API...");
+      try {
+        const apiResponse = await getData(`/voters/search/${encodeURIComponent(cleanId)}`);
+        if (apiResponse && apiResponse.voterId) {
+          voter = apiResponse;
+        }
+      } catch (apiErr) {
+        console.log("⚠️ API search failed, continuing with local search");
+      }
+    }
+
+    loading.style.display = "none";
+
+    if (voter) {
+      // Show success result
+      displayVoterResult(voter);
+      results.style.display = "block";
+    } else {
+      // No voter found
+      noResults.style.display = "block";
+    }
+
+  } catch (error) {
+    console.error("Search error:", error);
+    loading.style.display = "none";
+    noResults.style.display = "block";
+    
+    if (noResults) {
+      const noResultsText = noResults.querySelector("p");
+      if (noResultsText) {
+        noResultsText.textContent = "❌ " + error.message;
+      }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────
+// DISPLAY VOTER RESULT
+// ─────────────────────────────────────────────
+function displayVoterResult(voter) {
+  const resultStatus = document.getElementById("resultStatus");
+  const resultDetails = document.getElementById("resultDetails");
+
+  if (resultStatus) {
+    resultStatus.innerHTML = "✅ Voter ID Found!";
+  }
+
+  const statusColor = voter.verified ? "var(--success)" : "var(--warning)";
+  if (resultStatus) {
+    resultStatus.style.color = statusColor;
+  }
+
+  // Build details HTML
+  const details = [
+    { label: "Voter ID", value: voter.voterId || "N/A" },
+    { label: "Name", value: voter.name || "Not provided" },
+    { label: "Email", value: voter.email || "Not registered" },
+    { label: "Status", value: voter.verified ? "✓ Verified" : "⚠ Pending Verification" },
+    { label: "Registration Date", value: formatDate(voter.createdAt) },
+  ];
+
+  if (resultDetails) {
+    resultDetails.innerHTML = details.map(d => `
+      <div class="result-detail-row">
+        <span class="result-detail-label">${d.label}</span>
+        <span class="result-detail-value">${d.value}</span>
+      </div>
+    `).join("");
+  }
+}
+
+// ─────────────────────────────────────────────
+// FORMAT DATE HELPER
+// ─────────────────────────────────────────────
+function formatDate(dateStr) {
+  if (!dateStr) return "N/A";
+  try {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch {
+    return dateStr;
+  }
+}
 
 // ─────────────────────────────────────────────
 // SAFE VOTING STATUS CHECK
 // ─────────────────────────────────────────────
 function isSafelyOpen(data) {
-  // FIX: Better handling of API response
   if (!data || typeof data !== "object") {
     console.warn("⚠️  Invalid data structure");
     return false;
   }
 
-  // Check multiple possible response formats
   const isOpenBoolean = data.isOpen === true;
   const isOpenString = data.status === "OPEN";
   const isOpenAlt = data.votingOpen === true;
   
-  const isOpen = isOpenBoolean || isOpenString || isOpenAlt;
-
-  console.log("📊 API Response Analysis:");
-  console.log("   isOpen (boolean):", isOpenBoolean);
-  console.log("   status (string):", isOpenString);
-  console.log("   votingOpen (alt):", isOpenAlt);
-  console.log("   Final result:", isOpen);
-
-  return isOpen;
+  return isOpenBoolean || isOpenString || isOpenAlt;
 }
-
 
 // ─────────────────────────────────────────────
 // GLOBAL VOTING STATE
@@ -323,7 +485,6 @@ let votingState = {
   lastFetch: 0
 };
 
-
 // ─────────────────────────────────────────────
 // SEED LOCAL DATA
 // ─────────────────────────────────────────────
@@ -331,26 +492,20 @@ function seedData() {
   if (!ccGet('candidates')) {
     ccSet('candidates', []);
   }
-
   if (!ccGet('voters')) {
     ccSet('voters', []);
   }
-
   if (!ccGet('votes')) {
     ccSet('votes', []);
   }
-
   if (!ccGet('admins')) {
-    ccSet('admins', [
-      {
-        email: "admin@civicchain.com",
-        passHash: "",
-        token: ""
-      }
-    ]);
+    ccSet('admins', [{
+      email: "admin@civicchain.com",
+      passHash: "",
+      token: ""
+    }]);
   }
 }
-
 
 // ─────────────────────────────────────────────
 // FETCH VOTING STATUS
@@ -360,67 +515,44 @@ async function fetchVotingStatus() {
     console.log("📡 Fetching voting status...");
 
     const data = await getData('/voting/status');
-
     console.log("🗳️ RAW API RESPONSE:", data);
 
-    // Use safe open checker
     const isOpen = isSafelyOpen(data);
-
-    // Check expiry if available
     const expiry = Number(data.expiryMillis || 0);
     const now = Date.now();
     const remaining = expiry - now;
 
-    console.log("⏱️  Expiry check:", {
-      expiry,
-      now,
-      remaining,
-      expired: remaining < -5000
-    });
-
-    // Save state
     votingState.serverTime = Number(data.serverTime || now);
     votingState.expiryTime = expiry;
     votingState.lastFetch = now;
     votingState.isOpen = isOpen;
 
-    // Auto-close if expired
     if (isOpen && expiry > 0 && remaining < -5000) {
       console.log("⏰ Voting expired");
       votingState.isOpen = false;
     }
 
     console.log("✅ FINAL STATE:", votingState);
-
     return votingState;
 
   } catch (err) {
     console.error("❌ Fetch failed:", err.message);
-    // Keep old state on error
     return votingState;
   }
 }
-
 
 // ─────────────────────────────────────────────
 // FORMAT REMAINING TIME
 // ─────────────────────────────────────────────
 function formatRemainingTime(ms) {
-  if (ms <= 0) {
-    return "00:00:00";
-  }
+  if (ms <= 0) return "00:00:00";
 
   const h = Math.floor(ms / 3600000);
   const m = Math.floor((ms % 3600000) / 60000);
   const s = Math.floor((ms % 60000) / 1000);
 
-  return (
-    `${String(h).padStart(2, '0')}:` +
-    `${String(m).padStart(2, '0')}:` +
-    `${String(s).padStart(2, '0')}`
-  );
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
-
 
 // ─────────────────────────────────────────────
 // UPDATE UI
@@ -429,7 +561,6 @@ async function updateVotingUI() {
   await fetchVotingStatus();
 
   const open = votingState.isOpen;
-
   console.log("🎨 Updating UI | Open:", open);
 
   const dot = document.getElementById("statusDot");
@@ -440,82 +571,40 @@ async function updateVotingUI() {
     const remaining = votingState.expiryTime - Date.now();
     const timeStr = formatRemainingTime(remaining);
 
-    if (dot) {
-      dot.style.background = "var(--success)";
-    }
-
-    if (tag) {
-      tag.innerHTML = `
-        <span class="status-dot" style="background:var(--success)"></span>
-        Voting is LIVE — closes in ${timeStr}
-      `;
-    }
-
+    if (dot) dot.style.background = "var(--success)";
+    if (tag) tag.innerHTML = `<span class="status-dot" style="background:var(--success)"></span>Voting is LIVE — closes in ${timeStr}`;
     if (banner) {
       banner.className = "voting-banner open";
       banner.textContent = `🗳️ VOTING IS OPEN — closes in ${timeStr}`;
     }
-
   } else {
-    if (dot) {
-      dot.style.background = "var(--error)";
-    }
-
-    if (tag) {
-      tag.innerHTML = `
-        <span class="status-dot" style="background:var(--error)"></span>
-        Voting not active
-      `;
-    }
-
+    if (dot) dot.style.background = "var(--error)";
+    if (tag) tag.innerHTML = `<span class="status-dot" style="background:var(--error)"></span>Voting not active`;
     if (banner) {
       banner.className = "voting-banner closed";
       banner.textContent = "🔒 Voting is currently closed";
     }
   }
-
-  // Update stats
-  const votes = ccGet('votes') || [];
-  const candidates = ccGet('candidates') || [];
-
-  const statVotes = document.getElementById("statVotes");
-  const statCandidates = document.getElementById("statCandidates");
-
-  if (statVotes) {
-    statVotes.innerHTML = `${votes.length}<span>+</span>`;
-  }
-
-  if (statCandidates) {
-    statCandidates.innerHTML = `${candidates.length}`;
-  }
 }
-
 
 // ─────────────────────────────────────────────
 // MODAL SETUP
 // ─────────────────────────────────────────────
 const modal = document.getElementById("votingModal");
-const modalTitle = document.getElementById("modalTitle");
-const modalMsg = document.getElementById("modalMessage");
 const modalCloseBtn = document.getElementById("modalCloseBtn");
 
 if (modalCloseBtn) {
-  modalCloseBtn.onclick = () => {
-    modal?.classList.remove("active");
-  };
+  modalCloseBtn.onclick = () => modal?.classList.remove("active");
 }
 
 if (modal) {
   modal.addEventListener("click", e => {
-    if (e.target === modal) {
-      modal.classList.remove("active");
-    }
+    if (e.target === modal) modal.classList.remove("active");
   });
 }
 
-
 // ─────────────────────────────────────────────
-// HANDLE VOTE CLICK (FIXED)
+// HANDLE VOTE CLICK
 // ─────────────────────────────────────────────
 async function handleVoteClick(e) {
   e.preventDefault();
@@ -523,14 +612,10 @@ async function handleVoteClick(e) {
   try {
     console.log("🖱️ Vote button clicked");
 
-    // DIRECT API CHECK
     const data = await getData('/voting/status');
-
     console.log("🗳️ DIRECT API CHECK:", data);
 
-    // FIX: Use the safe checker function
     const open = isSafelyOpen(data);
-
     console.log("✅ Voting open?", open);
 
     if (open) {
@@ -538,40 +623,59 @@ async function handleVoteClick(e) {
       window.location.href = "login.html";
     } else {
       console.log("❌ SHOWING MODAL");
+      const modalTitle = document.getElementById("modalTitle");
+      const modalMsg = document.getElementById("modalMessage");
       
-      if (modalTitle) {
-        modalTitle.textContent = "🔒 Voting Not Open";
-      }
-
-      if (modalMsg) {
-        modalMsg.textContent =
-          "The election administrator has not opened voting yet. Please check back soon.";
-      }
-
+      if (modalTitle) modalTitle.textContent = "🔒 Voting Not Open";
+      if (modalMsg) modalMsg.textContent = "The election administrator has not opened voting yet. Please check back soon.";
       modal?.classList.add("active");
     }
-
   } catch (err) {
     console.error("Vote click error:", err);
     alert("Failed to check voting status: " + err.message);
   }
 }
 
+// ─────────────────────────────────────────────
+// SEARCH BUTTON LISTENERS
+// ─────────────────────────────────────────────
+const searchBtn = document.getElementById("searchBtn");
+const voterIdInput = document.getElementById("voterIdInput");
+const closeResultBtn = document.getElementById("closeResultBtn");
+
+if (searchBtn) {
+  searchBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    const voterId = voterIdInput.value;
+    searchVoterId(voterId);
+  });
+}
+
+if (voterIdInput) {
+  voterIdInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      const voterId = voterIdInput.value;
+      searchVoterId(voterId);
+    }
+  });
+}
+
+if (closeResultBtn) {
+  closeResultBtn.addEventListener("click", () => {
+    document.getElementById("searchResults").style.display = "none";
+    document.getElementById("noResults").style.display = "none";
+    voterIdInput.value = "";
+    voterIdInput.focus();
+  });
+}
 
 // ─────────────────────────────────────────────
-// ATTACH BUTTONS
+// ATTACH VOTE BUTTONS
 // ─────────────────────────────────────────────
-[
-  "navVoteBtn",
-  "heroStartVote",
-  "ctaVoteBtn"
-].forEach(id => {
+["navVoteBtn", "heroStartVote", "ctaVoteBtn"].forEach(id => {
   const el = document.getElementById(id);
-  if (el) {
-    el.addEventListener("click", handleVoteClick);
-  }
+  if (el) el.addEventListener("click", handleVoteClick);
 });
-
 
 // ─────────────────────────────────────────────
 // CURSOR EFFECT
@@ -580,9 +684,7 @@ function initCursor() {
   const cursor = document.getElementById("cursor");
   const ring = document.getElementById("cursorRing");
 
-  if (!cursor || !ring) {
-    return;
-  }
+  if (!cursor || !ring) return;
 
   let mouseX = window.innerWidth / 2;
   let mouseY = window.innerHeight / 2;
@@ -592,62 +694,30 @@ function initCursor() {
   document.addEventListener("mousemove", e => {
     mouseX = e.clientX;
     mouseY = e.clientY;
-    cursor.style.transform =
-      `translate(${mouseX - 6}px, ${mouseY - 6}px)`;
+    cursor.style.transform = `translate(${mouseX - 6}px, ${mouseY - 6}px)`;
   });
 
   function animateRing() {
     ringX += (mouseX - ringX) * 0.18;
     ringY += (mouseY - ringY) * 0.18;
-
-    ring.style.transform =
-      `translate(${ringX - 18}px, ${ringY - 18}px)`;
-
+    ring.style.transform = `translate(${ringX - 18}px, ${ringY - 18}px)`;
     requestAnimationFrame(animateRing);
   }
 
   animateRing();
 
-  document
-    .querySelectorAll("a, button")
-    .forEach(el => {
-      el.addEventListener("mouseenter", () => {
-        ring.style.width = "56px";
-        ring.style.height = "56px";
-      });
-
-      el.addEventListener("mouseleave", () => {
-        ring.style.width = "36px";
-        ring.style.height = "36px";
-      });
+  document.querySelectorAll("a, button").forEach(el => {
+    el.addEventListener("mouseenter", () => {
+      ring.style.width = "56px";
+      ring.style.height = "56px";
     });
+
+    el.addEventListener("mouseleave", () => {
+      ring.style.width = "36px";
+      ring.style.height = "36px";
+    });
+  });
 }
-
-
-// ─────────────────────────────────────────────
-// STORAGE SYNC
-// ─────────────────────────────────────────────
-window.addEventListener("storage", e => {
-  if (
-    e.key === CC_KEYS.locked ||
-    e.key === CC_KEYS.expiry
-  ) {
-    console.log("🔄 Storage sync event");
-    updateVotingUI();
-  }
-});
-
-
-// ─────────────────────────────────────────────
-// TAB VISIBILITY REFRESH
-// ─────────────────────────────────────────────
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") {
-    console.log("👁️ Tab visible - refreshing");
-    updateVotingUI();
-  }
-});
-
 
 // ─────────────────────────────────────────────
 // INITIALIZATION
@@ -658,15 +728,12 @@ window.addEventListener("DOMContentLoaded", async () => {
   seedData();
   initCursor();
 
-  // Initial fetch
   await updateVotingUI();
 
-  // Poll every 2 seconds
   setInterval(async () => {
     await updateVotingUI();
   }, 2000);
 });
-
 </script>
 </body>
 </html>
