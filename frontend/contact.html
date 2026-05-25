@@ -12,7 +12,7 @@
     body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px);background-size:60px 60px;z-index:0;pointer-events:none;}
     .cursor{width:12px;height:12px;background:var(--accent);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9999;mix-blend-mode:difference;}
     .cursor-ring{width:36px;height:36px;border:1px solid var(--accent);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9998;opacity:.4;}
-    
+
     nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:20px 60px;background:rgba(3,7,18,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
     .logo{font-size:1.3rem;font-weight:800;letter-spacing:-.02em;color:var(--text);display:flex;align-items:center;gap:10px;text-decoration:none;}
     .logo-dot{width:10px;height:10px;background:var(--accent);border-radius:50%;animation:pulse-dot 2s infinite;}
@@ -22,294 +22,389 @@
     .nav-links a:hover{color:var(--text);}
     .nav-cta{padding:10px 24px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:'Syne',sans-serif;font-size:.85rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;transition:background .2s,color .2s;}
     .nav-cta:hover{background:var(--accent);color:var(--bg);}
-    
-    .container{flex:1;display:flex;align-items:center;justify-content:center;padding:120px 60px 60px;position:relative;z-index:1;}
-    .content{max-width:600px;width:100%;animation:fadeIn .6s ease;}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}}
-    
-    .header{text-align:center;margin-bottom:50px;}
-    .header-tag{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;justify-content:center;gap:8px;}
+
+    .page-wrap{flex:1;padding:120px 60px 60px;position:relative;z-index:1;max-width:700px;margin:0 auto;width:100%;}
+
+    /* ── section headers ── */
+    .section-header{margin-bottom:40px;}
+    .header-tag{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
     .status-dot{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:blink 1.5s infinite;}
     @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-    h1{font-size:2.5rem;font-weight:800;letter-spacing:-.03em;margin-bottom:16px;}
-    .subtitle{font-size:1rem;color:var(--muted);line-height:1.6;}
-    
-    .form-group{margin-bottom:24px;}
-    .form-label{display:block;font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:8px;}
-    .form-input,.form-textarea{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'Syne',sans-serif;font-size:.95rem;padding:14px 16px;outline:none;border-radius:4px;transition:border-color .2s,box-shadow .2s;letter-spacing:.02em;}
-    .form-input:focus,.form-textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,229,255,.08);}
+    .section-header h1,.section-header h2{font-weight:800;letter-spacing:-.03em;margin-bottom:10px;}
+    .section-header h1{font-size:2.5rem;}
+    .section-header h2{font-size:1.6rem;}
+    .subtitle{font-size:.95rem;color:var(--muted);line-height:1.6;}
+
+    /* ── divider ── */
+    .section-divider{border:none;border-top:1px solid var(--border);margin:60px 0;position:relative;}
+    .section-divider::before{content:attr(data-label);position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--bg);padding:0 16px;font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);letter-spacing:.15em;white-space:nowrap;}
+
+    /* ── request cards ── */
+    .request-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:32px;margin-bottom:24px;transition:border-color .3s;}
+    .request-card.voter-card{border-top:3px solid var(--success);}
+    .request-card.update-card{border-top:3px solid var(--warning);}
+    .request-card-icon{font-size:2rem;margin-bottom:12px;}
+    .request-card h3{font-size:1.2rem;font-weight:800;margin-bottom:6px;letter-spacing:-.02em;}
+    .request-card p{font-size:.85rem;color:var(--muted);margin-bottom:24px;line-height:1.6;}
+
+    /* ── forms ── */
+    .form-group{margin-bottom:20px;}
+    .form-label{display:block;font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:8px;}
+    .form-input,.form-textarea{width:100%;background:#111827;border:1px solid var(--border);color:var(--text);font-family:'Syne',sans-serif;font-size:.92rem;padding:13px 15px;outline:none;border-radius:5px;transition:border-color .2s,box-shadow .2s;}
+    .form-input:focus,.form-textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,229,255,.07);}
     .form-input::placeholder,.form-textarea::placeholder{color:var(--muted);}
-    .form-textarea{resize:vertical;min-height:140px;}
-    
-    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-    
-    .btn{width:100%;padding:14px;background:var(--accent);color:var(--bg);font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;letter-spacing:.05em;text-transform:uppercase;border:none;border-radius:4px;cursor:pointer;transition:transform .2s,box-shadow .2s;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));}
-    .btn:hover{transform:translateY(-2px);box-shadow:0 0 30px rgba(0,229,255,.3);}
-    .btn:disabled{opacity:.4;cursor:not-allowed;}
-    
-    .spinner{display:none;width:20px;height:20px;border:2px solid rgba(3,7,18,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto;}
+    .form-textarea{resize:vertical;min-height:120px;}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .form-hint{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);margin-top:5px;opacity:.7;}
+
+    /* ── buttons ── */
+    .btn{width:100%;padding:13px;font-family:'Syne',sans-serif;font-weight:700;font-size:.88rem;letter-spacing:.05em;text-transform:uppercase;border:none;border-radius:5px;cursor:pointer;transition:transform .2s,box-shadow .2s;display:flex;justify-content:center;align-items:center;gap:8px;}
+    .btn-accent{background:var(--accent);color:var(--bg);}
+    .btn-accent:hover{transform:translateY(-2px);box-shadow:0 0 28px rgba(0,229,255,.3);}
+    .btn-success{background:var(--success);color:var(--bg);}
+    .btn-success:hover{transform:translateY(-2px);box-shadow:0 0 28px rgba(16,185,129,.3);}
+    .btn-warning{background:var(--warning);color:#000;}
+    .btn-warning:hover{transform:translateY(-2px);box-shadow:0 0 28px rgba(245,158,11,.3);}
+    .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+    .spinner{display:none;width:18px;height:18px;border:2px solid rgba(0,0,0,.15);border-top-color:currentColor;border-radius:50%;animation:spin .7s linear infinite;}
     .spinner.show{display:block;}
     @keyframes spin{to{transform:rotate(360deg)}}
-    
-    .alert{padding:12px 16px;border-left:3px solid;font-family:'JetBrains Mono',monospace;font-size:.75rem;line-height:1.6;margin-bottom:20px;border-radius:4px;display:none;}
+
+    /* ── alerts ── */
+    .alert{padding:12px 15px;border-left:3px solid;font-family:'JetBrains Mono',monospace;font-size:.72rem;line-height:1.6;margin-bottom:18px;border-radius:4px;display:none;}
     .alert.show{display:block;}
-    .alert-success{border-color:var(--success);background:rgba(16,185,129,.08);color:var(--success);}
-    .alert-error{border-color:var(--error);background:rgba(239,68,68,.08);color:var(--error);}
-    
-    .contact-info{background:var(--surface);border:1px solid var(--border);padding:30px;border-radius:8px;margin-top:40px;text-align:center;}
-    .info-item{margin-bottom:20px;}
+    .alert-success{border-color:var(--success);background:rgba(16,185,129,.07);color:var(--success);}
+    .alert-error{border-color:var(--error);background:rgba(239,68,68,.07);color:var(--error);}
+
+    /* ── contact info box ── */
+    .contact-info{background:var(--surface);border:1px solid var(--border);padding:28px;border-radius:8px;margin-top:40px;text-align:center;}
+    .info-item{margin-bottom:18px;}
     .info-item:last-child{margin-bottom:0;}
-    .info-label{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;}
-    .info-value{font-size:1rem;font-weight:600;color:var(--text);}
-    .info-link{color:var(--accent);text-decoration:none;transition:color .2s;}
-    .info-link:hover{color:var(--text);}
-    
-    footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:30px 60px;text-align:center;}
-    .footer-copy{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);}
-    
-    @media(max-width:768px){nav{padding:16px 24px;}.nav-links{display:none;}.container{padding:100px 24px 40px;}.header h1{font-size:1.8rem;}.form-row{grid-template-columns:1fr;}.contact-info{margin-top:30px;}footer{padding:20px 24px;}}
+    .info-label{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;}
+    .info-value{font-size:.95rem;font-weight:600;color:var(--text);}
+    .info-link{color:var(--accent);text-decoration:none;}
+    .info-link:hover{text-decoration:underline;}
+
+    footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:28px 60px;text-align:center;}
+    .footer-copy{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);}
+
+    @media(max-width:768px){
+      nav{padding:16px 24px;}.nav-links{display:none;}
+      .page-wrap{padding:100px 20px 40px;}
+      .section-header h1{font-size:1.8rem;}
+      .form-row{grid-template-columns:1fr;}
+      footer{padding:20px 24px;}
+    }
   </style>
 </head>
 <body>
 <div class="cursor" id="cursor"></div>
 <div class="cursor-ring" id="cursorRing"></div>
 
-<!-- NAVIGATION -->
 <nav>
   <a href="index.html" class="logo"><div class="logo-dot"></div>CivicChain</a>
   <ul class="nav-links">
     <li><a href="index.html#search">🔍 Find Voter ID</a></li>
     <li><a href="index.html#how">How It Works</a></li>
+    <li><a href="index.html">🏠Home</a></li>
     <li><a href="results.html">📊 Results</a></li>
     <li><a href="admin.html">⚙️ Admin</a></li>
   </ul>
   <a href="login.html" class="nav-cta">Cast Your Vote</a>
 </nav>
 
-<!-- MAIN CONTENT -->
-<div class="container">
-  <div class="content">
-    <!-- HEADER -->
-    <div class="header">
-      <div class="header-tag">
-        <span class="status-dot"></span>
-        Get in Touch
+<div class="page-wrap">
+
+  <!-- ══ SECTION 1: CONTACT FORM ══ -->
+  <div class="section-header">
+    <div class="header-tag"><span class="status-dot"></span>Get in Touch</div>
+    <h1>Contact Our Team</h1>
+    <p class="subtitle">Have questions about CivicChain? Fill out the form below and we'll respond as soon as possible.</p>
+  </div>
+
+  <div class="alert" id="contactAlert"></div>
+
+  <form id="contactForm">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">First Name</label>
+        <input type="text" class="form-input" id="firstName" placeholder="John" required>
       </div>
-      <h1>Contact Our Team</h1>
-      <p class="subtitle">Have questions about CivicChain? We'd love to hear from you. Fill out the form below and we'll respond as soon as possible.</p>
+      <div class="form-group">
+        <label class="form-label">Last Name</label>
+        <input type="text" class="form-input" id="lastName" placeholder="Doe" required>
+      </div>
     </div>
+    <div class="form-group">
+      <label class="form-label">Email Address</label>
+      <input type="email" class="form-input" id="email" placeholder="john@example.com" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Phone Number (Optional)</label>
+      <input type="tel" class="form-input" id="phone" placeholder="+91 9876543210">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Subject</label>
+      <input type="text" class="form-input" id="subject" placeholder="How can we help?" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Message</label>
+      <textarea class="form-textarea" id="message" placeholder="Please describe your inquiry or issue..." required></textarea>
+    </div>
+    <button type="submit" class="btn btn-accent" id="contactSubmitBtn">
+      <span id="contactBtnText">Send Message</span>
+      <div class="spinner" id="contactSpinner"></div>
+    </button>
+  </form>
 
-    <!-- ALERT MESSAGE -->
-    <div class="alert" id="alertMessage"></div>
-
-    <!-- CONTACT FORM -->
-    <form id="contactForm">
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">First Name</label>
-          <input type="text" class="form-input" id="firstName" placeholder="John" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Last Name</label>
-          <input type="text" class="form-input" id="lastName" placeholder="Doe" required>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Email Address</label>
-        <input type="email" class="form-input" id="email" placeholder="john@example.com" required>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Phone Number (Optional)</label>
-        <input type="tel" class="form-input" id="phone" placeholder="+91 9876543210">
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Subject</label>
-        <input type="text" class="form-input" id="subject" placeholder="How can we help?" required>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Message</label>
-        <textarea class="form-textarea" id="message" placeholder="Please describe your inquiry or issue..." required></textarea>
-      </div>
-
-      <button type="submit" class="btn" id="submitBtn">
-        <span id="btnText">Send Message</span>
-        <div class="spinner" id="spinner"></div>
-      </button>
-    </form>
-
-    <!-- CONTACT INFORMATION -->
-    <div class="contact-info">
-      <div class="info-item">
-        <div class="info-label">📧 Email Support</div>
-        <div class="info-value"><a href="mailto:support@civicchain.com" class="info-link">support@civicchain.com</a></div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">📞 Phone Support</div>
-        <div class="info-value"><a href="tel:+919876543210" class="info-link">+91 9876543210</a></div>
-      </div>
-      <div class="info-item">
-        <div class="info-label">🕐 Business Hours</div>
-        <div class="info-value">Mon-Fri: 9 AM - 6 PM IST<br><span style="font-size:.85rem;color:var(--muted);">Sat: 10 AM - 4 PM IST</span></div>
-      </div>
+  <div class="contact-info">
+    <div class="info-item">
+      <div class="info-label">📧 Email Support</div>
+      <div class="info-value"><a href="mailto:support@civicchain.com" class="info-link">support@civicchain.com</a></div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">📞 Phone Support</div>
+      <div class="info-value"><a href="tel:+919876543210" class="info-link">+91 9876543210</a></div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">🕐 Business Hours</div>
+      <div class="info-value">Mon–Fri: 9 AM – 6 PM IST<br><span style="font-size:.82rem;color:var(--muted);">Sat: 10 AM – 4 PM IST</span></div>
     </div>
   </div>
-</div>
 
-<!-- FOOTER -->
+  <!-- ══ DIVIDER ══ -->
+  <hr class="section-divider" data-label="VOTER SERVICES">
+
+  <!-- ══ SECTION 2: VOTER REGISTRATION REQUEST ══ -->
+  <div class="section-header">
+    <div class="header-tag" style="color:var(--success);">
+      <span class="status-dot" style="background:var(--success);"></span>
+      New Registration
+    </div>
+    <h2>Register as a Voter</h2>
+    <p class="subtitle">Not registered yet? Submit your details below. The admin team will verify and add you to the voter list.</p>
+  </div>
+
+  <div class="request-card voter-card">
+    <div class="request-card-icon">🗳️</div>
+    <h3>Voter Registration Request</h3>
+    <p>Fill in your personal details exactly as they appear on your government-issued ID. Your request will appear in the admin dashboard for approval.</p>
+
+    <div class="alert" id="voterAlert"></div>
+
+    <form id="voterRegForm">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Avatar Emoji</label>
+          <input type="text" class="form-input" id="vr_emoji" placeholder="👤" maxlength="2">
+          <div class="form-hint">// Optional — pick any emoji</div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" class="form-input" id="vr_name" placeholder="John Michael Doe" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Date of Birth</label>
+          <input type="date" class="form-input" id="vr_dob" required>
+          <div class="form-hint">// YYYY-MM-DD format</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone Number</label>
+          <input type="tel" class="form-input" id="vr_phone" placeholder="9876543210" required>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-success" id="voterSubmitBtn">
+        <span id="voterBtnText">Submit Registration Request</span>
+        <div class="spinner" id="voterSpinner"></div>
+      </button>
+    </form>
+  </div>
+
+  <!-- ══ DIVIDER ══ -->
+  <hr class="section-divider" data-label="UPDATE REQUEST">
+
+  <!-- ══ SECTION 3: UPDATE DETAILS REQUEST ══ -->
+  <div class="section-header">
+    <div class="header-tag" style="color:var(--warning);">
+      <span class="status-dot" style="background:var(--warning);"></span>
+      Details Update
+    </div>
+    <h2>Update My Voter Details</h2>
+    <p class="subtitle">Already registered but need to correct your information? Submit an update request and the admin will apply the changes.</p>
+  </div>
+
+  <div class="request-card update-card">
+    <div class="request-card-icon">✏️</div>
+    <h3>Update Details Request</h3>
+    <p>Enter your existing Voter ID and the new details you'd like to update. Leave any field blank to keep the current value.</p>
+
+    <div class="alert" id="updateAlert"></div>
+
+    <form id="updateForm">
+      <div class="form-group">
+        <label class="form-label">Your Existing Voter ID <span style="color:var(--error);">*</span></label>
+        <input type="text" class="form-input" id="upd_existingId" placeholder="VOT1234" required>
+        <div class="form-hint">// Required to identify your record</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Updated Full Name</label>
+        <input type="text" class="form-input" id="upd_name" placeholder="Leave blank to keep current">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Updated Date of Birth</label>
+          <input type="date" class="form-input" id="upd_dob">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Updated Phone Number</label>
+          <input type="tel" class="form-input" id="upd_phone" placeholder="Leave blank to keep current">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Updated Emoji</label>
+          <input type="text" class="form-input" id="upd_emoji" placeholder="Leave blank to keep current" maxlength="2">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason for Update</label>
+        <textarea class="form-textarea" id="upd_reason" placeholder="Briefly explain why you are requesting this update..." style="min-height:90px;"></textarea>
+      </div>
+      <button type="submit" class="btn btn-warning" id="updateSubmitBtn">
+        <span id="updateBtnText">Submit Update Request</span>
+        <div class="spinner" id="updateSpinner"></div>
+      </button>
+    </form>
+  </div>
+
+</div><!-- /page-wrap -->
+
 <footer>
-  <div class="footer-copy">© 2026 CivicPulse — All rights reserved</div>
+  <div class="footer-copy">© 2026 CivicChain — All rights reserved</div>
 </footer>
 
 <script>
-// ─────────────────────────────────────────────
-// CURSOR EFFECT
-// ─────────────────────────────────────────────
-function initCursor() {
-  const cursor = document.getElementById("cursor");
-  const ring = document.getElementById("cursorRing");
-
-  if (!cursor || !ring) return;
-
-  let mouseX = window.innerWidth / 2;
-  let mouseY = window.innerHeight / 2;
-  let ringX = mouseX;
-  let ringY = mouseY;
-
-  document.addEventListener("mousemove", e => {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
-    cursor.style.transform = `translate(${mouseX - 6}px, ${mouseY - 6}px)`;
+// ── Cursor ──────────────────────────────────
+(function(){
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx=window.innerWidth/2, my=window.innerHeight/2, rx=mx, ry=my;
+  document.addEventListener('mousemove', e=>{
+    mx=e.clientX; my=e.clientY;
+    cursor.style.transform=`translate(${mx-6}px,${my-6}px)`;
   });
+  (function loop(){
+    rx+=(mx-rx)*.18; ry+=(my-ry)*.18;
+    ring.style.transform=`translate(${rx-18}px,${ry-18}px)`;
+    requestAnimationFrame(loop);
+  })();
+})();
 
-  function animateRing() {
-    ringX += (mouseX - ringX) * 0.18;
-    ringY += (mouseY - ringY) * 0.18;
-    ring.style.transform = `translate(${ringX - 18}px, ${ringY - 18}px)`;
-    requestAnimationFrame(animateRing);
-  }
-
-  animateRing();
+// ── Helpers ─────────────────────────────────
+function showAlert(id, type, msg){
+  const el=document.getElementById(id);
+  el.className=`alert show alert-${type}`;
+  el.textContent=msg;
+  el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function setLoading(btnId, spinnerId, textId, loading, label){
+  document.getElementById(btnId).disabled=loading;
+  document.getElementById(spinnerId).classList.toggle('show',loading);
+  document.getElementById(textId).textContent=loading?'Please wait…':label;
+}
+function saveToLS(key, obj){
+  const arr=JSON.parse(localStorage.getItem(key)||'[]');
+  arr.push({...obj, timestamp:new Date().toISOString(), status:'pending'});
+  localStorage.setItem(key, JSON.stringify(arr));
 }
 
-// ─────────────────────────────────────────────
-// FORM HANDLING
-// ─────────────────────────────────────────────
-const form = document.getElementById("contactForm");
-const submitBtn = document.getElementById("submitBtn");
-const spinner = document.getElementById("spinner");
-const btnText = document.getElementById("btnText");
-const alertMessage = document.getElementById("alertMessage");
-
-form.addEventListener("submit", async (e) => {
+// ── 1. Contact Form ─────────────────────────
+document.getElementById('contactForm').addEventListener('submit', async e=>{
   e.preventDefault();
-
-  // Get form data
-  const formData = {
-    firstName: document.getElementById("firstName").value.trim(),
-    lastName: document.getElementById("lastName").value.trim(),
-    email: document.getElementById("email").value.trim(),
-    phone: document.getElementById("phone").value.trim(),
-    subject: document.getElementById("subject").value.trim(),
-    message: document.getElementById("message").value.trim(),
+  const data={
+    firstName:document.getElementById('firstName').value.trim(),
+    lastName:document.getElementById('lastName').value.trim(),
+    email:document.getElementById('email').value.trim(),
+    phone:document.getElementById('phone').value.trim(),
+    subject:document.getElementById('subject').value.trim(),
+    message:document.getElementById('message').value.trim(),
   };
+  if(!data.firstName||!data.email||!data.subject||!data.message)
+    return showAlert('contactAlert','error','❌ Please fill in all required fields.');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
+    return showAlert('contactAlert','error','❌ Please enter a valid email address.');
 
-  // Validate
-  if (!formData.firstName || !formData.lastName || !formData.email || !formData.subject || !formData.message) {
-    showAlert("error", "❌ Please fill in all required fields");
-    return;
-  }
-
-  // Email validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(formData.email)) {
-    showAlert("error", "❌ Please enter a valid email address");
-    return;
-  }
-
-  // Show loading state
-  submitBtn.disabled = true;
-  spinner.classList.add("show");
-  btnText.textContent = "Sending...";
-
-  try {
-    console.log("📧 Sending contact form:", formData);
-
-    // Try to send to backend API
-    const response = await fetch("https://civicchain-1.onrender.com/api/contact", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify(formData)
-    });
-
-    console.log("📥 API Response Status:", response.status);
-
-    // Also save to localStorage as backup
-    const submissions = JSON.parse(localStorage.getItem("contactSubmissions") || "[]");
-    submissions.push({
-      ...formData,
-      timestamp: new Date().toISOString(),
-      sentVia: "api"
-    });
-    localStorage.setItem("contactSubmissions", JSON.stringify(submissions));
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log("✅ Message sent to backend:", data);
-      showAlert("success", "✅ Message sent successfully! We'll get back to you soon.");
-    } else {
-      console.log("⚠️ Backend API error (HTTP " + response.status + "), but saved locally");
-      showAlert("success", "✅ Message received! (Saved locally). We'll get back to you soon.");
-    }
-    
-    // Reset form
-    form.reset();
-    document.getElementById("firstName").focus();
-
-  } catch (error) {
-    console.error("❌ Error sending message:", error);
-    
-    // Fallback: still save to localStorage
-    const submissions = JSON.parse(localStorage.getItem("contactSubmissions") || "[]");
-    submissions.push({
-      ...formData,
-      timestamp: new Date().toISOString(),
-      sentVia: "localStorage"
-    });
-    localStorage.setItem("contactSubmissions", JSON.stringify(submissions));
-    
-    showAlert("success", "✅ Message saved locally. We'll get back to you soon.");
-    form.reset();
-  } finally {
-    // Reset button state
-    submitBtn.disabled = false;
-    spinner.classList.remove("show");
-    btnText.textContent = "Send Message";
+  setLoading('contactSubmitBtn','contactSpinner','contactBtnText',true,'Send Message');
+  try{
+    const res=await fetch('https://civicchain-1.onrender.com/api/contact',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)
+    }).catch(()=>null);
+    saveToLS('contactSubmissions',{...data,sentVia: res?.ok?'api':'localStorage'});
+    showAlert('contactAlert','success','✅ Message sent! We\'ll get back to you soon.');
+    document.getElementById('contactForm').reset();
+  }catch(err){
+    saveToLS('contactSubmissions',{...data,sentVia:'localStorage'});
+    showAlert('contactAlert','success','✅ Message saved. We\'ll get back to you soon.');
+    document.getElementById('contactForm').reset();
+  }finally{
+    setLoading('contactSubmitBtn','contactSpinner','contactBtnText',false,'Send Message');
   }
 });
 
-// ─────────────────────────────────────────────
-// SHOW ALERT
-// ─────────────────────────────────────────────
-function showAlert(type, message) {
-  alertMessage.className = `alert show alert-${type}`;
-  alertMessage.textContent = message;
-  alertMessage.scrollIntoView({ behavior: "smooth", block: "nearest" });
-}
+// ── 2. Voter Registration Request ───────────
+document.getElementById('voterRegForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const data={
+    type:'voterRequest',
+    voterId:   document.getElementById('vr_id').value.trim(),
+    name:      document.getElementById('vr_name').value.trim(),
+    dob:       document.getElementById('vr_dob').value.trim(),
+    phone:     document.getElementById('vr_phone').value.trim(),
+    emoji:     document.getElementById('vr_emoji').value.trim() || '👤',
+  };
+  if(!data.voterId||!data.name||!data.dob||!data.phone)
+    return showAlert('voterAlert','error','❌ Please fill in all required fields.');
+  if(!/^[A-Za-z0-9]{3,12}$/.test(data.voterId))
+    return showAlert('voterAlert','error','❌ Voter ID must be 3–12 alphanumeric characters.');
 
-// ─────────────────────────────────────────────
-// INITIALIZATION
-// ─────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("🚀 Contact page initialized");
-  initCursor();
-  document.getElementById("firstName").focus();
+  setLoading('voterSubmitBtn','voterSpinner','voterBtnText',true,'Submit Registration Request');
+  setTimeout(()=>{
+    saveToLS('voterRequests', data);
+    showAlert('voterAlert','success','✅ Registration request submitted! The admin team will review and add you to the voter list.');
+    document.getElementById('voterRegForm').reset();
+    setLoading('voterSubmitBtn','voterSpinner','voterBtnText',false,'Submit Registration Request');
+  }, 800);
+});
+
+// ── 3. Update Details Request ───────────────
+document.getElementById('updateForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const existingId=document.getElementById('upd_existingId').value.trim();
+  if(!existingId) return showAlert('updateAlert','error','❌ Your existing Voter ID is required.');
+
+  const data={
+    type:'updateRequest',
+    existingVoterId: existingId,
+    newVoterId:  document.getElementById('upd_newId').value.trim()  || null,
+    name:        document.getElementById('upd_name').value.trim()   || null,
+    dob:         document.getElementById('upd_dob').value.trim()    || null,
+    phone:       document.getElementById('upd_phone').value.trim()  || null,
+    emoji:       document.getElementById('upd_emoji').value.trim()  || null,
+    reason:      document.getElementById('upd_reason').value.trim() || 'No reason provided',
+  };
+  const hasChanges=data.newVoterId||data.name||data.dob||data.phone||data.emoji;
+  if(!hasChanges) return showAlert('updateAlert','error','❌ Please fill in at least one field to update.');
+
+  setLoading('updateSubmitBtn','updateSpinner','updateBtnText',true,'Submit Update Request');
+  setTimeout(()=>{
+    saveToLS('updateRequests', data);
+    showAlert('updateAlert','success','✅ Update request submitted! The admin team will review and apply your changes.');
+    document.getElementById('updateForm').reset();
+    setLoading('updateSubmitBtn','updateSpinner','updateBtnText',false,'Submit Update Request');
+  }, 800);
 });
 </script>
 </body>
