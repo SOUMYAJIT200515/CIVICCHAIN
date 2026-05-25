@@ -532,29 +532,79 @@ function renderRecentSealed(votes){
 async function renderBlocks(){
   const blocks = await apiFetch('/admin/blocks');
   const el = document.getElementById('blocksChain');
+
   if(!blocks || !Array.isArray(blocks) || blocks.length===0){
-    el.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px;font-size:.85rem">No blocks mined yet — votes create blocks (10 votes = 1 sealed block)</div>';
+    el.innerHTML = `
+      <div style="text-align:center;color:var(--muted);padding:40px;font-size:.85rem">
+        No blocks mined yet — votes create blocks (10 votes = 1 sealed block)
+      </div>
+    `;
     return;
   }
+
+  const resultsSealed = votingOpen && votingExpiry > Date.now();
+
   el.innerHTML = blocks.map((b,i)=>{
-    const votesHtml = (b.votes||[]).map(v=>
-      `<div class="block-vote-item"><span>${v.voterHash}</span><span class="bv-cand">${v.candidateName}</span></div>`
-    ).join('');
-    const connector = i < blocks.length-1 ? '<div class="block-connector"></div>' : '';
-    return `
-      <div class="block-card ${b.sealed?'sealed':'unsealed'}">
-        <div class="block-header">
-          <span class="block-num">⛓ Block #${b.blockNumber}</span>
-          <span class="block-status ${b.sealed?'sealed':'pending'}">${b.sealed?'✓ Sealed':'⏳ Open'} · ${b.voteCount}/10 votes</span>
-        </div>
-        <div class="block-meta">
-          <div class="block-field"><strong>Hash</strong><span class="hash-val">${b.hash||'Not yet computed'}</span></div>
-          <div class="block-field"><strong>Previous Hash</strong><span class="hash-val">${b.previousHash}</span></div>
-          <div class="block-field"><strong>Timestamp</strong>${new Date(b.timestamp).toLocaleString()}</div>
-          <div class="block-field"><strong>Block ID</strong>${b.blockId ? b.blockId.substring(0,8)+'...' : '—'}</div>
-        </div>
-        ${votesHtml ? '<div class="block-votes-list">'+votesHtml+'</div>' : ''}
+
+    const votesHtml = (b.votes || []).map(v => `
+      <div class="block-vote-item">
+        <span>${v.voterHash}</span>
+        <span class="bv-cand">
+          ${resultsSealed ? '🔒 Hidden' : v.candidateName}
+        </span>
       </div>
+    `).join('');
+
+    const connector = i < blocks.length-1
+      ? '<div class="block-connector"></div>'
+      : '';
+
+    return `
+      <div class="block-card ${b.sealed ? 'sealed' : 'unsealed'}">
+
+        <div class="block-header">
+          <span class="block-num">
+            ⛓ Block #${b.blockNumber}
+          </span>
+
+          <span class="block-status ${b.sealed ? 'sealed' : 'pending'}">
+            ${b.sealed ? '✓ Sealed' : '⏳ Open'} · ${b.voteCount}/10 votes
+          </span>
+        </div>
+
+        <div class="block-meta">
+          <div class="block-field">
+            <strong>Hash</strong>
+            <span class="hash-val">
+              ${b.hash || 'Not yet computed'}
+            </span>
+          </div>
+
+          <div class="block-field">
+            <strong>Previous Hash</strong>
+            <span class="hash-val">
+              ${b.previousHash}
+            </span>
+          </div>
+
+          <div class="block-field">
+            <strong>Timestamp</strong>
+            ${new Date(b.timestamp).toLocaleString()}
+          </div>
+
+          <div class="block-field">
+            <strong>Block ID</strong>
+            ${b.blockId ? b.blockId.substring(0,8)+'...' : '—'}
+          </div>
+        </div>
+
+        ${votesHtml
+          ? '<div class="block-votes-list">'+votesHtml+'</div>'
+          : ''
+        }
+
+      </div>
+
       ${connector}
     `;
   }).join('');
