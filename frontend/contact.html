@@ -6,7 +6,7 @@
   <title>Contact Us — CivicChain</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
-    :root{--bg:#030712;--surface:#0d1117;--border:#1e2936;--accent:#00e5ff;--accent2:#7c3aed;--text:#e2e8f0;--muted:#64748b;--success:#10b981;--warning:#f59e0b;--error:#ef4444;}
+    :root{--bg:#030712;--surface:#0d1117;--border:#1e2936;--accent:#00e5ff;--text:#e2e8f0;--muted:#64748b;--success:#10b981;--warning:#f59e0b;--error:#ef4444;}
     *{margin:0;padding:0;box-sizing:border-box;}
     body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden;}
     body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px);background-size:60px 60px;z-index:0;pointer-events:none;}
@@ -25,7 +25,6 @@
 
     .page-wrap{flex:1;padding:120px 60px 60px;position:relative;z-index:1;max-width:700px;margin:0 auto;width:100%;}
 
-    /* ── section headers ── */
     .section-header{margin-bottom:40px;}
     .header-tag{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
     .status-dot{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:blink 1.5s infinite;}
@@ -35,49 +34,75 @@
     .section-header h2{font-size:1.6rem;}
     .subtitle{font-size:.95rem;color:var(--muted);line-height:1.6;}
 
-    /* ── divider ── */
     .section-divider{border:none;border-top:1px solid var(--border);margin:60px 0;position:relative;}
     .section-divider::before{content:attr(data-label);position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--bg);padding:0 16px;font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);letter-spacing:.15em;white-space:nowrap;}
 
-    /* ── request cards ── */
-    .request-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:32px;margin-bottom:24px;transition:border-color .3s;}
+    .request-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:32px;margin-bottom:24px;}
     .request-card.voter-card{border-top:3px solid var(--success);}
     .request-card.update-card{border-top:3px solid var(--warning);}
     .request-card-icon{font-size:2rem;margin-bottom:12px;}
     .request-card h3{font-size:1.2rem;font-weight:800;margin-bottom:6px;letter-spacing:-.02em;}
     .request-card p{font-size:.85rem;color:var(--muted);margin-bottom:24px;line-height:1.6;}
 
-    /* ── forms ── */
     .form-group{margin-bottom:20px;}
     .form-label{display:block;font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-bottom:8px;}
     .form-input,.form-textarea{width:100%;background:#111827;border:1px solid var(--border);color:var(--text);font-family:'Syne',sans-serif;font-size:.92rem;padding:13px 15px;outline:none;border-radius:5px;transition:border-color .2s,box-shadow .2s;}
     .form-input:focus,.form-textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,229,255,.07);}
+    .form-input.input-error{border-color:var(--error);box-shadow:0 0 0 3px rgba(239,68,68,.07);}
+    .form-input.input-ok{border-color:var(--success);box-shadow:0 0 0 3px rgba(16,185,129,.06);}
     .form-input::placeholder,.form-textarea::placeholder{color:var(--muted);}
     .form-textarea{resize:vertical;min-height:120px;}
     .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
     .form-hint{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);margin-top:5px;opacity:.7;}
 
-    /* ── buttons ── */
-    .btn{width:100%;padding:13px;font-family:'Syne',sans-serif;font-weight:700;font-size:.88rem;letter-spacing:.05em;text-transform:uppercase;border:none;border-radius:5px;cursor:pointer;transition:transform .2s,box-shadow .2s;display:flex;justify-content:center;align-items:center;gap:8px;}
+    /* ── age badge ── */
+    .age-badge{display:none;margin-top:7px;padding:7px 12px;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:.68rem;font-weight:700;letter-spacing:.05em;align-items:center;gap:6px;}
+    .age-badge.show{display:flex;}
+    .age-badge.eligible{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.35);color:var(--success);}
+    .age-badge.ineligible{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:var(--error);}
+
+    /* ── file upload zone ── */
+    .upload-zone{border:2px dashed var(--border);border-radius:8px;padding:28px 20px;text-align:center;cursor:pointer;transition:border-color .25s,background .25s;position:relative;background:rgba(255,255,255,.01);}
+    .upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:rgba(0,229,255,.03);}
+    .upload-zone.has-file{border-color:var(--success);background:rgba(16,185,129,.04);}
+    .upload-zone.ineligible-zone{opacity:.4;pointer-events:none;}
+    .upload-zone input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+    .upload-icon{font-size:2rem;margin-bottom:8px;}
+    .upload-title{font-weight:700;font-size:.9rem;margin-bottom:4px;}
+    .upload-sub{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--muted);}
+    .upload-preview{display:none;align-items:center;gap:10px;margin-top:12px;padding:10px 14px;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:6px;}
+    .upload-preview.show{display:flex;}
+    .preview-icon{font-size:1.4rem;}
+    .preview-info{text-align:left;flex:1;}
+    .preview-name{font-size:.82rem;font-weight:700;color:var(--success);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;}
+    .preview-size{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);}
+    .preview-remove{background:none;border:none;color:var(--error);cursor:pointer;font-size:1rem;padding:2px 6px;border-radius:3px;transition:background .2s;}
+    .preview-remove:hover{background:rgba(239,68,68,.1);}
+
+    /* ── ineligible block ── */
+    .ineligible-block{display:none;padding:18px 20px;border-radius:8px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.3);margin-bottom:18px;}
+    .ineligible-block.show{display:block;}
+    .ineligible-block .ib-title{font-weight:800;font-size:1rem;color:var(--error);margin-bottom:4px;}
+    .ineligible-block .ib-sub{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted);line-height:1.6;}
+
+    .btn{width:100%;padding:13px;font-family:'Syne',sans-serif;font-weight:700;font-size:.88rem;letter-spacing:.05em;text-transform:uppercase;border:none;border-radius:5px;cursor:pointer;transition:transform .2s,box-shadow .2s,opacity .2s;display:flex;justify-content:center;align-items:center;gap:8px;}
     .btn-accent{background:var(--accent);color:var(--bg);}
-    .btn-accent:hover{transform:translateY(-2px);box-shadow:0 0 28px rgba(0,229,255,.3);}
+    .btn-accent:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 0 28px rgba(0,229,255,.3);}
     .btn-success{background:var(--success);color:var(--bg);}
-    .btn-success:hover{transform:translateY(-2px);box-shadow:0 0 28px rgba(16,185,129,.3);}
+    .btn-success:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 0 28px rgba(16,185,129,.3);}
     .btn-warning{background:var(--warning);color:#000;}
-    .btn-warning:hover{transform:translateY(-2px);box-shadow:0 0 28px rgba(245,158,11,.3);}
-    .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .btn-warning:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 0 28px rgba(245,158,11,.3);}
+    .btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
 
     .spinner{display:none;width:18px;height:18px;border:2px solid rgba(0,0,0,.15);border-top-color:currentColor;border-radius:50%;animation:spin .7s linear infinite;}
     .spinner.show{display:block;}
     @keyframes spin{to{transform:rotate(360deg)}}
 
-    /* ── alerts ── */
     .alert{padding:12px 15px;border-left:3px solid;font-family:'JetBrains Mono',monospace;font-size:.72rem;line-height:1.6;margin-bottom:18px;border-radius:4px;display:none;}
     .alert.show{display:block;}
     .alert-success{border-color:var(--success);background:rgba(16,185,129,.07);color:var(--success);}
     .alert-error{border-color:var(--error);background:rgba(239,68,68,.07);color:var(--error);}
 
-    /* ── contact info box ── */
     .contact-info{background:var(--surface);border:1px solid var(--border);padding:28px;border-radius:8px;margin-top:40px;text-align:center;}
     .info-item{margin-bottom:18px;}
     .info-item:last-child{margin-bottom:0;}
@@ -106,6 +131,560 @@
   <a href="index.html" class="logo"><div class="logo-dot"></div>CivicChain</a>
   <ul class="nav-links">
     <li><a href="index.html#search">🔍 Find Voter ID</a></li>
+    <li><a href="index.html#how">How It Works</a></li>
+    <li><a href="index.html">🏠 Home</a></li>
+    <li><a href="results.html">📊 Results</a></li>
+    <li><a href="admin.html">⚙️ Admin</a></li>
+  </ul>
+  <a href="login.html" class="nav-cta">Cast Your Vote</a>
+</nav>
+
+<div class="page-wrap">
+
+  <!-- ══ SECTION 1: CONTACT FORM ══ -->
+  <div class="section-header">
+    <div class="header-tag"><span class="status-dot"></span>Get in Touch</div>
+    <h1>Contact Our Team</h1>
+    <p class="subtitle">Have questions about CivicChain? Fill out the form below and we'll respond as soon as possible.</p>
+  </div>
+
+  <div class="alert" id="contactAlert"></div>
+
+  <form id="contactForm">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">First Name</label>
+        <input type="text" class="form-input" id="firstName" placeholder="John" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Last Name</label>
+        <input type="text" class="form-input" id="lastName" placeholder="Doe" required>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email Address</label>
+      <input type="email" class="form-input" id="email" placeholder="john@example.com" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Phone Number (Optional)</label>
+      <input type="tel" class="form-input" id="phone" placeholder="+91 9876543210">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Subject</label>
+      <input type="text" class="form-input" id="subject" placeholder="How can we help?" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Message</label>
+      <textarea class="form-textarea" id="message" placeholder="Please describe your inquiry or issue..." required></textarea>
+    </div>
+    <button type="submit" class="btn btn-accent" id="contactSubmitBtn">
+      <span id="contactBtnText">Send Message</span>
+      <div class="spinner" id="contactSpinner"></div>
+    </button>
+  </form>
+
+  <div class="contact-info">
+    <div class="info-item">
+      <div class="info-label">📧 Email Support</div>
+      <div class="info-value"><a href="mailto:support@civicchain.com" class="info-link">support@civicchain.com</a></div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">📞 Phone Support</div>
+      <div class="info-value"><a href="tel:+919876543210" class="info-link">+91 9876543210</a></div>
+    </div>
+    <div class="info-item">
+      <div class="info-label">🕐 Business Hours</div>
+      <div class="info-value">Mon–Fri: 9 AM – 6 PM IST<br><span style="font-size:.82rem;color:var(--muted);">Sat: 10 AM – 4 PM IST</span></div>
+    </div>
+  </div>
+
+  <!-- ══ DIVIDER ══ -->
+  <hr class="section-divider" data-label="VOTER SERVICES">
+
+  <!-- ══ SECTION 2: VOTER REGISTRATION REQUEST ══ -->
+  <div class="section-header">
+    <div class="header-tag" style="color:var(--success);">
+      <span class="status-dot" style="background:var(--success);"></span>New Registration
+    </div>
+    <h2>Register as a Voter</h2>
+    <p class="subtitle">Not registered yet? Submit your details below. The admin team will verify and add you to the voter list. Your Voter ID will be auto-assigned.</p>
+  </div>
+
+  <div class="request-card voter-card">
+    <div class="request-card-icon">🗳️</div>
+    <h3>Voter Registration Request</h3>
+    <p>Fill in your personal details exactly as they appear on your government-issued ID. You must be 18 years or older to register.</p>
+
+    <div class="alert" id="voterAlert"></div>
+
+    <form id="voterRegForm">
+      <div class="form-group">
+        <label class="form-label">Avatar Emoji (Optional)</label>
+        <input type="text" class="form-input" id="vr_emoji" placeholder="👤" maxlength="2">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Full Name <span style="color:var(--error);">*</span></label>
+        <input type="text" class="form-input" id="vr_name" placeholder="John Michael Doe" required>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Date of Birth <span style="color:var(--error);">*</span></label>
+          <input type="date" class="form-input" id="vr_dob" required>
+          <!-- age feedback shown inline -->
+          <div class="age-badge" id="vr_age_badge"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone Number <span style="color:var(--error);">*</span></label>
+          <input type="tel" class="form-input" id="vr_phone" placeholder="9876543210" required>
+        </div>
+      </div>
+
+      <!-- ineligible block shown when under 18 -->
+      <div class="ineligible-block" id="vr_ineligible">
+        <div class="ib-title">🚫 Not Eligible to Vote</div>
+        <div class="ib-sub">You must be at least 18 years old to register as a voter.<br>Please contact the admin if you believe this is an error.</div>
+      </div>
+
+      <!-- DOB proof upload — disabled when ineligible -->
+      <div class="form-group" id="vr_upload_group">
+        <label class="form-label">DOB Proof Document <span style="color:var(--error);">*</span></label>
+        <div class="upload-zone" id="vr_upload_zone">
+          <input type="file" id="vr_dob_file" accept=".jpg,.jpeg,.png,.pdf" onchange="handleFileSelect('vr')">
+          <div id="vr_upload_placeholder">
+            <div class="upload-icon">📄</div>
+            <div class="upload-title">Upload DOB Proof</div>
+            <div class="upload-sub">Aadhaar · PAN · Passport · Birth Certificate<br>JPG, PNG or PDF · Max 5MB</div>
+          </div>
+          <div class="upload-preview" id="vr_upload_preview">
+            <div class="preview-icon" id="vr_preview_icon">📄</div>
+            <div class="preview-info">
+              <div class="preview-name" id="vr_preview_name"></div>
+              <div class="preview-size" id="vr_preview_size"></div>
+            </div>
+            <button type="button" class="preview-remove" onclick="removeFile('vr')" title="Remove file">✕</button>
+          </div>
+        </div>
+        <div class="form-hint">// Accepted: Aadhaar card, PAN card, Passport, or Birth Certificate</div>
+      </div>
+
+      <button type="submit" class="btn btn-success" id="voterSubmitBtn">
+        <span id="voterBtnText">Submit Registration Request</span>
+        <div class="spinner" id="voterSpinner"></div>
+      </button>
+    </form>
+  </div>
+
+  <!-- ══ DIVIDER ══ -->
+  <hr class="section-divider" data-label="UPDATE REQUEST">
+
+  <!-- ══ SECTION 3: UPDATE DETAILS REQUEST ══ -->
+  <div class="section-header">
+    <div class="header-tag" style="color:var(--warning);">
+      <span class="status-dot" style="background:var(--warning);"></span>Details Update
+    </div>
+    <h2>Update My Voter Details</h2>
+    <p class="subtitle">Already registered but need to correct your information? Submit an update request and the admin will apply the changes.</p>
+  </div>
+
+  <div class="request-card update-card">
+    <div class="request-card-icon">✏️</div>
+    <h3>Update Details Request</h3>
+    <p>Enter your existing Voter ID and the new details you'd like to update. Leave any field blank to keep the current value.</p>
+
+    <div class="alert" id="updateAlert"></div>
+
+    <form id="updateForm">
+      <div class="form-group">
+        <label class="form-label">Your Existing Voter ID <span style="color:var(--error);">*</span></label>
+        <input type="text" class="form-input" id="upd_existingId" placeholder="VOT1234" required>
+        <div class="form-hint">// Required to identify your record</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Updated Full Name</label>
+        <input type="text" class="form-input" id="upd_name" placeholder="Leave blank to keep current">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Updated Date of Birth</label>
+          <input type="date" class="form-input" id="upd_dob">
+          <div class="age-badge" id="upd_age_badge"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Updated Phone Number</label>
+          <input type="tel" class="form-input" id="upd_phone" placeholder="Leave blank to keep current">
+        </div>
+      </div>
+
+      <!-- ineligible block for update form -->
+      <div class="ineligible-block" id="upd_ineligible">
+        <div class="ib-title">🚫 Date of Birth Makes Voter Ineligible</div>
+        <div class="ib-sub">The date of birth you entered results in an age under 18.<br>Voter must be at least 18 years old. Please re-check the date.</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Updated Emoji</label>
+        <input type="text" class="form-input" id="upd_emoji" placeholder="Leave blank to keep current" maxlength="2">
+      </div>
+
+      <!-- DOB proof upload for update — only shown when a new DOB is entered -->
+      <div class="form-group" id="upd_upload_group" style="display:none;">
+        <label class="form-label">DOB Proof Document <span style="color:var(--error);">*</span></label>
+        <div class="upload-zone" id="upd_upload_zone">
+          <input type="file" id="upd_dob_file" accept=".jpg,.jpeg,.png,.pdf" onchange="handleFileSelect('upd')">
+          <div id="upd_upload_placeholder">
+            <div class="upload-icon">📄</div>
+            <div class="upload-title">Upload DOB Proof</div>
+            <div class="upload-sub">Aadhaar · PAN · Passport · Birth Certificate<br>JPG, PNG or PDF · Max 5MB</div>
+          </div>
+          <div class="upload-preview" id="upd_upload_preview">
+            <div class="preview-icon" id="upd_preview_icon">📄</div>
+            <div class="preview-info">
+              <div class="preview-name" id="upd_preview_name"></div>
+              <div class="preview-size" id="upd_preview_size"></div>
+            </div>
+            <button type="button" class="preview-remove" onclick="removeFile('upd')" title="Remove file">✕</button>
+          </div>
+        </div>
+        <div class="form-hint">// Required when updating DOB — Aadhaar, PAN, Passport or Birth Certificate</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Reason for Update</label>
+        <textarea class="form-textarea" id="upd_reason" placeholder="Briefly explain why you are requesting this update..." style="min-height:90px;"></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-warning" id="updateSubmitBtn">
+        <span id="updateBtnText">Submit Update Request</span>
+        <div class="spinner" id="updateSpinner"></div>
+      </button>
+    </form>
+  </div>
+
+</div><!-- /page-wrap -->
+
+<footer>
+  <div class="footer-copy">© 2026 CivicChain — All rights reserved</div>
+</footer>
+
+<script>
+// ── Cursor ──────────────────────────────────────────────────
+(function(){
+  const cursor = document.getElementById('cursor');
+  const ring   = document.getElementById('cursorRing');
+  let mx = window.innerWidth/2, my = window.innerHeight/2, rx = mx, ry = my;
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.transform = `translate(${mx-6}px,${my-6}px)`;
+  });
+  (function loop(){
+    rx += (mx-rx)*.18; ry += (my-ry)*.18;
+    ring.style.transform = `translate(${rx-18}px,${ry-18}px)`;
+    requestAnimationFrame(loop);
+  })();
+})();
+
+// ── File store (base64 per prefix) ─────────────────────────
+const fileStore = { vr: null, upd: null };
+
+// ── Age calculation ─────────────────────────────────────────
+function calcAge(dobValue) {
+  if (!dobValue) return null;
+  const dob  = new Date(dobValue);
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+  return age;
+}
+
+// ── DOB change handler — shows age badge + ineligible block ─
+function onDobChange(prefix) {
+  const dobVal    = document.getElementById(prefix + '_dob').value;
+  const badge     = document.getElementById(prefix + '_age_badge');
+  const inelBlock = document.getElementById(prefix + '_ineligible');
+  const submitBtn = document.getElementById(prefix === 'vr' ? 'voterSubmitBtn' : 'updateSubmitBtn');
+  const uploadZone = document.getElementById(prefix + '_upload_zone');
+  const dobInput  = document.getElementById(prefix + '_dob');
+
+  // For update form: show/hide upload group based on whether DOB field has a value
+  if (prefix === 'upd') {
+    const uploadGroup = document.getElementById('upd_upload_group');
+    uploadGroup.style.display = dobVal ? 'block' : 'none';
+    if (!dobVal) {
+      // Clear upload if DOB cleared
+      removeFile('upd');
+    }
+  }
+
+  if (!dobVal) {
+    badge.className = 'age-badge';
+    inelBlock.classList.remove('show');
+    dobInput.classList.remove('input-error', 'input-ok');
+    if (uploadZone) uploadZone.classList.remove('ineligible-zone');
+    if (prefix === 'vr') submitBtn.disabled = false;
+    return;
+  }
+
+  const age = calcAge(dobVal);
+  const eligible = age >= 18;
+
+  // Age badge
+  badge.className = 'age-badge show ' + (eligible ? 'eligible' : 'ineligible');
+  badge.innerHTML = eligible
+    ? `✅ Age: ${age} years — Eligible`
+    : `🚫 Age: ${age} years — Not Eligible`;
+
+  // Input border colour
+  dobInput.classList.toggle('input-error', !eligible);
+  dobInput.classList.toggle('input-ok',    eligible);
+
+  // Ineligible block
+  inelBlock.classList.toggle('show', !eligible);
+
+  // Disable upload + submit when ineligible
+  if (uploadZone) uploadZone.classList.toggle('ineligible-zone', !eligible);
+  if (!eligible) {
+    submitBtn.disabled = true;
+    if (prefix === 'vr') removeFile('vr');
+    if (prefix === 'upd') removeFile('upd');
+  } else {
+    submitBtn.disabled = false;
+  }
+}
+
+// Attach DOB listeners
+document.getElementById('vr_dob').addEventListener('change',  () => onDobChange('vr'));
+document.getElementById('upd_dob').addEventListener('change', () => onDobChange('upd'));
+
+// ── Drag-and-drop support ───────────────────────────────────
+['vr_upload_zone','upd_upload_zone'].forEach(id => {
+  const zone = document.getElementById(id);
+  if (!zone) return;
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', ()  => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    const prefix = id.startsWith('vr') ? 'vr' : 'upd';
+    const file = e.dataTransfer?.files?.[0];
+    if (file) processFile(prefix, file);
+  });
+});
+
+// ── File select via input ───────────────────────────────────
+function handleFileSelect(prefix) {
+  const input = document.getElementById(prefix + '_dob_file');
+  if (input.files?.[0]) processFile(prefix, input.files[0]);
+}
+
+function processFile(prefix, file) {
+  const maxMB = 5;
+  const allowed = ['image/jpeg','image/png','application/pdf'];
+
+  if (!allowed.includes(file.type)) {
+    alert('Only JPG, PNG or PDF files are accepted.');
+    return;
+  }
+  if (file.size > maxMB * 1024 * 1024) {
+    alert(`File is too large. Maximum size is ${maxMB}MB.`);
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    fileStore[prefix] = {
+      name:     file.name,
+      size:     file.size,
+      type:     file.type,
+      base64:   e.target.result   // full data URL — stored with submission
+    };
+    showFilePreview(prefix, file);
+  };
+  reader.readAsDataURL(file);
+}
+
+function showFilePreview(prefix, file) {
+  const zone        = document.getElementById(prefix + '_upload_zone');
+  const placeholder = document.getElementById(prefix + '_upload_placeholder');
+  const preview     = document.getElementById(prefix + '_upload_preview');
+  const icon        = document.getElementById(prefix + '_preview_icon');
+  const nameEl      = document.getElementById(prefix + '_preview_name');
+  const sizeEl      = document.getElementById(prefix + '_preview_size');
+
+  const isPdf = file.type === 'application/pdf';
+  icon.textContent  = isPdf ? '📑' : '🖼️';
+  nameEl.textContent = file.name;
+  sizeEl.textContent = (file.size / 1024).toFixed(1) + ' KB';
+
+  placeholder.style.display = 'none';
+  preview.classList.add('show');
+  zone.classList.add('has-file');
+}
+
+function removeFile(prefix) {
+  fileStore[prefix] = null;
+  const input       = document.getElementById(prefix + '_dob_file');
+  const placeholder = document.getElementById(prefix + '_upload_placeholder');
+  const preview     = document.getElementById(prefix + '_upload_preview');
+  const zone        = document.getElementById(prefix + '_upload_zone');
+  if (input)       input.value = '';
+  if (placeholder) placeholder.style.display = '';
+  if (preview)     preview.classList.remove('show');
+  if (zone)        zone.classList.remove('has-file');
+}
+
+// ── Helpers ─────────────────────────────────────────────────
+function showAlert(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = `alert show alert-${type}`;
+  el.textContent = msg;
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function setLoading(btnId, spinnerId, textId, loading, label) {
+  document.getElementById(btnId).disabled = loading;
+  document.getElementById(spinnerId).classList.toggle('show', loading);
+  document.getElementById(textId).textContent = loading ? 'Please wait…' : label;
+}
+
+function saveToLS(key, obj) {
+  const arr = JSON.parse(localStorage.getItem(key) || '[]');
+  arr.push({ ...obj, timestamp: new Date().toISOString(), status: 'pending' });
+  localStorage.setItem(key, JSON.stringify(arr));
+}
+
+// ── 1. Contact Form ─────────────────────────────────────────
+document.getElementById('contactForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const data = {
+    firstName: document.getElementById('firstName').value.trim(),
+    lastName:  document.getElementById('lastName').value.trim(),
+    email:     document.getElementById('email').value.trim(),
+    phone:     document.getElementById('phone').value.trim(),
+    subject:   document.getElementById('subject').value.trim(),
+    message:   document.getElementById('message').value.trim(),
+  };
+  if (!data.firstName || !data.email || !data.subject || !data.message)
+    return showAlert('contactAlert', 'error', '❌ Please fill in all required fields.');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))
+    return showAlert('contactAlert', 'error', '❌ Please enter a valid email address.');
+
+  setLoading('contactSubmitBtn', 'contactSpinner', 'contactBtnText', true, 'Send Message');
+  try {
+    const res = await fetch('https://civicchain-1.onrender.com/api/contact', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+    }).catch(() => null);
+    saveToLS('contactSubmissions', { ...data, sentVia: res?.ok ? 'api' : 'localStorage' });
+    showAlert('contactAlert', 'success', "✅ Message sent! We'll get back to you soon.");
+    document.getElementById('contactForm').reset();
+  } catch {
+    saveToLS('contactSubmissions', { ...data, sentVia: 'localStorage' });
+    showAlert('contactAlert', 'success', "✅ Message saved. We'll get back to you soon.");
+    document.getElementById('contactForm').reset();
+  } finally {
+    setLoading('contactSubmitBtn', 'contactSpinner', 'contactBtnText', false, 'Send Message');
+  }
+});
+
+// ── 2. Voter Registration Request ───────────────────────────
+document.getElementById('voterRegForm').addEventListener('submit', e => {
+  e.preventDefault();
+
+  const dobVal = document.getElementById('vr_dob').value.trim();
+  const age    = calcAge(dobVal);
+
+  if (age !== null && age < 18)
+    return showAlert('voterAlert', 'error', '❌ You must be at least 18 years old to register.');
+
+  if (!fileStore.vr)
+    return showAlert('voterAlert', 'error', '❌ Please upload a DOB proof document.');
+
+  const data = {
+    type:        'voterRequest',
+    name:        document.getElementById('vr_name').value.trim(),
+    dob:         dobVal,
+    phone:       document.getElementById('vr_phone').value.trim(),
+    emoji:       document.getElementById('vr_emoji').value.trim() || '👤',
+    dobProof: {
+      fileName: fileStore.vr.name,
+      fileType: fileStore.vr.type,
+      fileSize: fileStore.vr.size,
+      fileData: fileStore.vr.base64      // stored as base64 data URL
+    }
+  };
+
+  if (!data.name || !data.dob || !data.phone)
+    return showAlert('voterAlert', 'error', '❌ Please fill in all required fields (Name, DOB, Phone).');
+
+  setLoading('voterSubmitBtn', 'voterSpinner', 'voterBtnText', true, 'Submit Registration Request');
+
+  setTimeout(() => {
+    saveToLS('voterRequests', data);
+    showAlert('voterAlert', 'success', '✅ Registration request submitted! The admin team will review and assign your Voter ID.');
+    document.getElementById('voterRegForm').reset();
+    removeFile('vr');
+    onDobChange('vr');   // reset badges
+    setLoading('voterSubmitBtn', 'voterSpinner', 'voterBtnText', false, 'Submit Registration Request');
+  }, 800);
+});
+
+// ── 3. Update Details Request ───────────────────────────────
+document.getElementById('updateForm').addEventListener('submit', e => {
+  e.preventDefault();
+
+  const existingId = document.getElementById('upd_existingId').value.trim();
+  if (!existingId)
+    return showAlert('updateAlert', 'error', '❌ Your existing Voter ID is required.');
+
+  const dobVal = document.getElementById('upd_dob').value.trim();
+
+  // If a new DOB is supplied, enforce age check
+  if (dobVal) {
+    const age = calcAge(dobVal);
+    if (age !== null && age < 18)
+      return showAlert('updateAlert', 'error', '❌ The updated DOB results in an age under 18. Voter must be 18+.');
+    // DOB proof required when DOB is being updated
+    if (!fileStore.upd)
+      return showAlert('updateAlert', 'error', '❌ Please upload a DOB proof document when updating your date of birth.');
+  }
+
+  const data = {
+    type:            'updateRequest',
+    existingVoterId: existingId,
+    name:            document.getElementById('upd_name').value.trim()   || null,
+    dob:             dobVal || null,
+    phone:           document.getElementById('upd_phone').value.trim()  || null,
+    emoji:           document.getElementById('upd_emoji').value.trim()  || null,
+    reason:          document.getElementById('upd_reason').value.trim() || 'No reason provided',
+    dobProof: fileStore.upd ? {
+      fileName: fileStore.upd.name,
+      fileType: fileStore.upd.type,
+      fileSize: fileStore.upd.size,
+      fileData: fileStore.upd.base64
+    } : null
+  };
+
+  const hasChanges = data.name || data.dob || data.phone || data.emoji;
+  if (!hasChanges)
+    return showAlert('updateAlert', 'error', '❌ Please fill in at least one field to update.');
+
+  setLoading('updateSubmitBtn', 'updateSpinner', 'updateBtnText', true, 'Submit Update Request');
+
+  setTimeout(() => {
+    saveToLS('updateRequests', data);
+    showAlert('updateAlert', 'success', '✅ Update request submitted! The admin team will review and apply your changes.');
+    document.getElementById('updateForm').reset();
+    removeFile('upd');
+    onDobChange('upd');  // reset badges
+    document.getElementById('upd_upload_group').style.display = 'none';
+    setLoading('updateSubmitBtn', 'updateSpinner', 'updateBtnText', false, 'Submit Update Request');
+  }, 800);
+});
+</script>
+</body>
+</html>
     <li><a href="index.html#how">How It Works</a></li>
     <li><a href="index.html">🏠Home</a></li>
     <li><a href="results.html">📊 Results</a></li>
