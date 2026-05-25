@@ -100,6 +100,20 @@
     .api-badge.failed{background:rgba(239,68,68,.1);color:var(--error);border:1px solid rgba(239,68,68,.3);}
     .api-badge.local{background:rgba(100,116,139,.1);color:var(--muted);border:1px solid rgba(100,116,139,.3);}
 
+    /* ── DOB PROOF VIEWER ─────────────────────────────── */
+    .proof-box{margin-top:12px;margin-bottom:14px;border:1px solid rgba(0,229,255,.2);border-radius:6px;overflow:hidden;}
+    .proof-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:rgba(0,229,255,.06);font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--accent);font-weight:700;letter-spacing:.06em;}
+    .proof-header span{color:var(--muted);font-weight:400;}
+    .proof-img{width:100%;max-height:320px;object-fit:contain;display:block;background:#000;cursor:zoom-in;}
+    .proof-pdf-link{display:flex;align-items:center;gap:8px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--accent);text-decoration:none;}
+    .proof-pdf-link:hover{background:rgba(0,229,255,.05);}
+    .proof-missing{padding:14px;font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted);}
+    /* fullscreen overlay for proof image */
+    .proof-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9998;display:flex;align-items:center;justify-content:center;cursor:zoom-out;animation:fadeIn .15s ease;}
+    .proof-overlay img{max-width:92vw;max-height:92vh;object-fit:contain;border-radius:4px;box-shadow:0 0 60px rgba(0,0,0,.8);}
+    .proof-overlay-close{position:absolute;top:20px;right:24px;font-family:'JetBrains Mono',monospace;font-size:.75rem;color:var(--muted);cursor:pointer;border:1px solid var(--border);padding:6px 12px;border-radius:4px;background:var(--surface);}
+    .proof-overlay-close:hover{color:var(--error);border-color:var(--error);}
+
     .btn-spinner{width:12px;height:12px;border:2px solid rgba(0,0,0,.2);border-top-color:currentColor;border-radius:50%;animation:spin .6s linear infinite;display:none;}
     .btn-spinner.show{display:inline-block;}
     @keyframes spin{to{transform:rotate(360deg)}}
@@ -201,7 +215,7 @@
 <script>
   const API_BASE = "https://civicchain-1.onrender.com/api";
 
-  // ── API HELPERS (matching admin.js patterns exactly) ───────
+  // ── API HELPERS ────────────────────────────────────────────
   async function getData(url) {
     try {
       const res = await fetch(API_BASE + url, {
@@ -261,17 +275,18 @@
     } catch (err) { console.error("❌ PUT error:", err); throw err; }
   }
 
-  // ── AUTO VOTER ID: last voter in API table + 1 ─────────────
-  // Matches the exact voter object shape from admin.js renderVoters()
-  // API returns: { id, voterId, name, dob, mobileNo, hasVoted }
-  // voterId strings can be e.g. VOT001, VOT1001, V123 — extract trailing number
+  // ── FIX 1: AUTO VOTER ID — correct sequential numbering ───
+  // BUG WAS: maxNum was hardcoded to 1000 as the starting floor,
+  // so even VOT006 would produce VOT1001.
+  // FIX: start maxNum at 0 so the real highest value always wins.
+  // Also handles pure-numeric IDs (e.g. "7") and letter-only prefixes.
   async function getNextVoterId() {
     try {
       const voters = await getData('/voters');
-      if (!Array.isArray(voters) || voters.length === 0) return 'VOT1001';
+      if (!Array.isArray(voters) || voters.length === 0) return 'VOT001';
 
-      // Find the highest trailing numeric suffix across all voterIds
-      let maxNum = 1000;
+      let maxNum = 0; // ← FIX: was 1000, now 0 so real data governs
+
       voters.forEach(v => {
         const match = String(v.voterId || '').match(/(\d+)$/);
         if (match) {
@@ -280,13 +295,27 @@
         }
       });
 
-      // Preserve prefix from the last entry, default to VOT
-      const lastVoter = voters[voters.length - 1];
-      const lastId = String(lastVoter?.voterId || 'VOT1000');
-      const prefixMatch = lastId.match(/^([A-Za-z]*)/);
-      const prefix = (prefixMatch && prefixMatch[1]) ? prefixMatch[1].toUpperCase() : 'VOT';
+      // Preserve prefix from the voter with the highest numeric ID
+      let dominantVoter = null;
+      let dominantNum = -1;
+      voters.forEach(v => {
+        const match = String(v.voterId || '').match(/(\d+)$/);
+        if (match && parseInt(match[1], 10) > dominantNum) {
+          dominantNum  = parseInt(match[1], 10);
+          dominantVoter = v;
+        }
+      });
 
-      return `${prefix}${maxNum + 1}`;
+      const lastId      = String(dominantVoter?.voterId || 'VOT000');
+      const prefixMatch = lastId.match(/^([A-Za-z]*)/);
+      const prefix      = (prefixMatch && prefixMatch[1]) ? prefixMatch[1].toUpperCase() : 'VOT';
+
+      // Pad to same width as the existing IDs (e.g. VOT006 → 3 digits)
+      const existingNumPart = lastId.match(/(\d+)$/);
+      const padLen = existingNumPart ? existingNumPart[1].length : 3;
+      const nextNum = String(maxNum + 1).padStart(padLen, '0');
+
+      return `${prefix}${nextNum}`;
     } catch (err) {
       console.warn('⚠️ Could not fetch voters for auto-ID:', err);
       return 'VOT' + (Date.now() % 9000 + 1000);
@@ -376,6 +405,81 @@
     ).then(() => toast('📋 Copied to clipboard'));
   }
 
+  // ── FIX 2: DOB PROOF RENDERER ──────────────────────────────
+  // Renders the dobProof (or dobProofFile / dobDocument — any key the
+  // registration form might use) stored with the voter request.
+  // Supports: base64 image, base64 PDF, plain filename string, or missing.
+  function renderDobProof(r, cardIndex) {
+    // Accept whatever key name the registration form uses
+    const raw = r.dobProof || r.dobProofFile || r.dobDocument || r.proofFile || null;
+
+    if (!raw) {
+      return `<div class="proof-box">
+        <div class="proof-header">📎 DOB Proof <span>Not uploaded</span></div>
+        <div class="proof-missing">No document attached with this request.</div>
+      </div>`;
+    }
+
+    // Detect type from data URI prefix or filename extension
+    const isDataURI = raw.startsWith('data:');
+    const isImage   = isDataURI
+      ? raw.startsWith('data:image')
+      : /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(raw);
+    const isPDF     = isDataURI
+      ? raw.startsWith('data:application/pdf')
+      : /\.pdf$/i.test(raw);
+
+    const overlayId = `proof-overlay-${cardIndex}`;
+
+    if (isImage) {
+      return `<div class="proof-box">
+        <div class="proof-header">📎 DOB Proof <span>Image</span></div>
+        <img class="proof-img" src="${raw}" alt="DOB Proof" title="Click to enlarge"
+          onclick="openProofOverlay('${overlayId}', '${raw.replace(/'/g,"\\'")}')">
+        <div id="${overlayId}" class="proof-overlay" style="display:none;"
+          onclick="closeProofOverlay('${overlayId}')">
+          <div class="proof-overlay-close" onclick="closeProofOverlay('${overlayId}')">✕ Close</div>
+          <img src="${raw}" alt="DOB Proof Full">
+        </div>
+      </div>`;
+    }
+
+    if (isPDF) {
+      return `<div class="proof-box">
+        <div class="proof-header">📎 DOB Proof <span>PDF Document</span></div>
+        <a class="proof-pdf-link" href="${raw}" download="dob-proof-${r.name || cardIndex}.pdf" target="_blank">
+          📄 Download / View PDF &nbsp;→
+        </a>
+      </div>`;
+    }
+
+    // Fallback: treat as a plain filename / URL
+    return `<div class="proof-box">
+      <div class="proof-header">📎 DOB Proof <span>File</span></div>
+      <a class="proof-pdf-link" href="${raw}" target="_blank" rel="noopener">
+        📎 ${raw} &nbsp;→
+      </a>
+    </div>`;
+  }
+
+  function openProofOverlay(id, src) {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+  }
+  function closeProofOverlay(id) {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = 'none'; document.body.style.overflow = ''; }
+  }
+  // Close overlay on Escape key
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.proof-overlay').forEach(el => {
+        el.style.display = 'none';
+      });
+      document.body.style.overflow = '';
+    }
+  });
+
   // ── RENDER VOTER REQUESTS ──────────────────────────────────
   function renderVoterRequests() {
     const items = getLS('voterRequests').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -415,6 +519,8 @@
       const card = document.createElement('div');
       card.className = 'card voter-card';
       card.id = 'voter-card-' + i;
+
+      // Build card HTML — DOB proof injected via renderDobProof()
       card.innerHTML = `
         <div class="card-head">
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -435,6 +541,7 @@
           <div class="detail"><div class="detail-label">🎂 Date of Birth</div><div class="detail-val">${r.dob || '—'}</div></div>
           <div class="detail"><div class="detail-label">📱 Phone</div><div class="detail-val">${r.phone || '—'}</div></div>
         </div>
+        ${renderDobProof(r, i)}
         <div class="card-actions">
           ${actionBtns}
           <button class="act-btn act-del" onclick="deleteItem('voterRequests', ${i})">🗑️ Delete</button>
@@ -444,8 +551,6 @@
   }
 
   // ── ADD VOTER VIA API ──────────────────────────────────────
-  // Uses POST /voters exactly like saveVoter() in admin.js
-  // Auto voter ID = highest numeric suffix in API table + 1
   async function addVoterViaAPI(i) {
     const requests = getLS('voterRequests');
     const r = requests[i];
@@ -453,24 +558,21 @@
 
     const addBtn  = document.getElementById('add-btn-' + i);
     const rejBtn  = document.getElementById('rej-btn-voter-' + i);
-    const spinner = document.getElementById('add-spinner-' + i);
     const card    = document.getElementById('voter-card-' + i);
 
     if (addBtn)  { addBtn.disabled = true; addBtn.innerHTML = '<span class="btn-spinner show"></span> Adding…'; }
     if (rejBtn)  rejBtn.disabled = true;
 
     try {
-      // Step 1: Auto-generate next voter ID from live API table
       toast('🔄 Fetching next Voter ID from API…', 'w');
       const autoVoterId = await getNextVoterId();
       console.log('🪪 Auto voter ID:', autoVoterId);
 
-      // Step 2: POST /voters — same payload shape as admin.js saveVoter()
       const payload = {
         voterId:  autoVoterId,
         name:     r.name     || '',
         dob:      r.dob      || '',
-        mobileNo: r.phone    || '',   // request uses "phone", API uses "mobileNo"
+        mobileNo: r.phone    || '',
         hasVoted: false
       };
 
@@ -478,7 +580,6 @@
       const result = await postData('/voters', payload);
       console.log('✅ API response:', result);
 
-      // Step 3: Mark approved in localStorage
       requests[i].status          = 'approved';
       requests[i].approvedAt      = new Date().toISOString();
       requests[i].assignedVoterId = autoVoterId;
@@ -490,8 +591,6 @@
 
     } catch (err) {
       console.error('❌ API add voter failed:', err);
-
-      // Fallback: save to localStorage voters
       const lsVoters = getLS('voters');
       const fbId = 'VOT' + Date.now();
       lsVoters.push({
@@ -580,8 +679,6 @@
   }
 
   // ── APPLY UPDATE VIA API ───────────────────────────────────
-  // Uses GET /voters to find by voterId string, then PUT /voters/{id}
-  // Matches putData() pattern from admin.js editVoter() / saveVoter()
   async function applyUpdateViaAPI(i) {
     const requests = getLS('updateRequests');
     const r = requests[i];
@@ -595,20 +692,12 @@
     if (rejBtn)   rejBtn.disabled = true;
 
     try {
-      // Step 1: Fetch all voters to find the matching one by voterId string
       toast('🔄 Looking up voter in API…', 'w');
       const allVoters = await getData('/voters');
-
       if (!Array.isArray(allVoters)) throw new Error('Invalid response from /voters');
-
-      // Match by voterId string (what the user sees), not the internal numeric id
       const voter = allVoters.find(v => v.voterId === r.existingVoterId);
       if (!voter) throw new Error(`Voter "${r.existingVoterId}" not found in the database`);
 
-      console.log('🔍 Found voter:', voter);
-
-      // Step 2: Build update payload — only override fields the request provides
-      // API field mapping: request.phone → API mobileNo (same as admin.js saveVoter)
       const payload = {
         voterId:  r.newVoterId || voter.voterId,
         name:     r.name       || voter.name,
@@ -617,12 +706,10 @@
         hasVoted: voter.hasVoted ?? false
       };
 
-      // Step 3: PUT /voters/{voter.id} — uses internal numeric id, same as admin.js editVoter()
       console.log(`📤 PUT /voters/${voter.id}`, payload);
       const result = await putData(`/voters/${voter.id}`, payload);
       console.log('✅ API update response:', result);
 
-      // Step 4: Mark approved
       requests[i].status        = 'approved';
       requests[i].approvedAt    = new Date().toISOString();
       requests[i].apiSynced     = true;
@@ -634,8 +721,6 @@
 
     } catch (err) {
       console.error('❌ API update voter failed:', err);
-
-      // Fallback: apply changes to localStorage voters
       const lsVoters = getLS('voters');
       const idx = lsVoters.findIndex(v => (v.voterId || v.id) === r.existingVoterId);
       if (idx !== -1) {
@@ -647,7 +732,6 @@
         lsVoters[idx].updatedAt = new Date().toISOString();
         setLS('voters', lsVoters);
       }
-
       requests[i].status     = 'approved';
       requests[i].approvedAt = new Date().toISOString();
       requests[i].apiSynced  = false;
@@ -661,7 +745,7 @@
     updateStats();
   }
 
-  // ── REJECT REQUEST ─────────────────────────────────────────
+  // ── REJECT / DELETE / EXPORT ───────────────────────────────
   function rejectRequest(lsKey, i) {
     if (!confirm('Reject this request?')) return;
     const items = getLS(lsKey);
@@ -672,7 +756,6 @@
     renderAll();
   }
 
-  // ── SHARED UTILS ───────────────────────────────────────────
   function deleteItem(lsKey, i) {
     if (!confirm('Delete this item permanently?')) return;
     const items = getLS(lsKey);
@@ -692,7 +775,9 @@
   function exportCSV(lsKey, filename) {
     const items = getLS(lsKey);
     if (!items.length) { toast('No items to export', 'e'); return; }
-    const keys = Object.keys(items[0]);
+    // Exclude large base64 blobs from CSV export
+    const skipKeys = ['dobProof','dobProofFile','dobDocument','proofFile'];
+    const keys = Object.keys(items[0]).filter(k => !skipKeys.includes(k));
     let csv = keys.join(',') + '\n';
     items.forEach(m => {
       csv += keys.map(k => `"${String(m[k] || '').replace(/"/g, '""')}"`).join(',') + '\n';
@@ -715,246 +800,6 @@
     renderAll();
     setInterval(renderAll, 20000);
   });
-</script>
-</body>
-</html>
-  <!-- STATISTICS -->
-  <div class="stats">
-    <div class="stat-card">
-      <div class="stat-value" id="totalMessages">0</div>
-      <div class="stat-label">Total Messages</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="todayMessages">0</div>
-      <div class="stat-label">Today</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="thisWeekMessages">0</div>
-      <div class="stat-label">This Week</div>
-    </div>
-  </div>
-
-  <!-- MESSAGES LIST -->
-  <div id="messagesContainer" class="messages-container"></div>
-
-  <!-- EMPTY STATE -->
-  <div id="emptyState" class="no-messages" style="display:none;">
-    <div class="no-messages-icon">📭</div>
-    <div class="no-messages-text">No contact messages yet</div>
-    <div class="no-messages-sub">Contact form submissions will appear here</div>
-  </div>
-</div>
-
-<!-- FOOTER -->
-<footer>
-  <div class="footer-copy">© 2026 CivicChain — Contact Management Dashboard</div>
-</footer>
-
-<script>
-// ─────────────────────────────────────────────
-// LOAD AND DISPLAY MESSAGES
-// ─────────────────────────────────────────────
-function loadMessages() {
-  const submissions = JSON.parse(localStorage.getItem("contactSubmissions") || "[]");
-  const container = document.getElementById("messagesContainer");
-  const emptyState = document.getElementById("emptyState");
-
-  console.log("📧 Loaded messages:", submissions.length);
-
-  // Update stats
-  updateStats(submissions);
-
-  // Clear container
-  container.innerHTML = "";
-
-  if (submissions.length === 0) {
-    emptyState.style.display = "block";
-    return;
-  }
-
-  emptyState.style.display = "none";
-
-  // Sort by timestamp (newest first)
-  submissions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  // Display each message
-  submissions.forEach((msg, index) => {
-    const card = createMessageCard(msg, index);
-    container.appendChild(card);
-  });
-}
-
-// ─────────────────────────────────────────────
-// CREATE MESSAGE CARD
-// ─────────────────────────────────────────────
-function createMessageCard(msg, index) {
-  const card = document.createElement("div");
-  card.className = "message-card";
-  
-  const date = new Date(msg.timestamp);
-  const timeStr = date.toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-
-  const fullName = `${msg.firstName} ${msg.lastName}`;
-
-  card.innerHTML = `
-    <div class="message-header">
-      <div class="message-name">${fullName}</div>
-      <div class="message-time">${timeStr}</div>
-    </div>
-
-    <div class="message-details">
-      <div class="detail-item">
-        <div class="detail-label">📧 Email</div>
-        <div class="detail-value"><a href="mailto:${msg.email}">${msg.email}</a></div>
-      </div>
-      <div class="detail-item">
-        <div class="detail-label">📱 Phone</div>
-        <div class="detail-value">${msg.phone || "Not provided"}</div>
-      </div>
-    </div>
-
-    <div class="message-subject">Subject: ${msg.subject}</div>
-    <div class="message-body">${msg.message}</div>
-
-    <div class="message-actions">
-      <button class="action-btn" onclick="copyToClipboard('${index}')">📋 Copy</button>
-      <button class="action-btn" onclick="deleteMessage(${index})">🗑️ Delete</button>
-      <button class="action-btn" onclick="replyEmail('${msg.email}')">✉️ Reply</button>
-    </div>
-  `;
-
-  return card;
-}
-
-// ─────────────────────────────────────────────
-// UPDATE STATISTICS
-// ─────────────────────────────────────────────
-function updateStats(submissions) {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-  const todayCount = submissions.filter(m => new Date(m.timestamp) >= today).length;
-  const weekCount = submissions.filter(m => new Date(m.timestamp) >= weekAgo).length;
-
-  document.getElementById("totalMessages").textContent = submissions.length;
-  document.getElementById("todayMessages").textContent = todayCount;
-  document.getElementById("thisWeekMessages").textContent = weekCount;
-  document.getElementById("totalCount").textContent = submissions.length;
-}
-
-// ─────────────────────────────────────────────
-// DELETE MESSAGE
-// ─────────────────────────────────────────────
-function deleteMessage(index) {
-  if (confirm("Are you sure you want to delete this message?")) {
-    const submissions = JSON.parse(localStorage.getItem("contactSubmissions") || "[]");
-    submissions.splice(index, 1);
-    localStorage.setItem("contactSubmissions", JSON.stringify(submissions));
-    loadMessages();
-    console.log("🗑️ Message deleted");
-  }
-}
-
-// ─────────────────────────────────────────────
-// COPY MESSAGE
-// ─────────────────────────────────────────────
-function copyToClipboard(index) {
-  const submissions = JSON.parse(localStorage.getItem("contactSubmissions") || "[]");
-  const msg = submissions[index];
-
-  const text = `
-Name: ${msg.firstName} ${msg.lastName}
-Email: ${msg.email}
-Phone: ${msg.phone || "Not provided"}
-Subject: ${msg.subject}
-
-Message:
-${msg.message}
-  `.trim();
-
-  navigator.clipboard.writeText(text).then(() => {
-    alert("✅ Message copied to clipboard");
-  }).catch(() => {
-    alert("❌ Failed to copy");
-  });
-}
-
-// ─────────────────────────────────────────────
-// REPLY EMAIL
-// ─────────────────────────────────────────────
-function replyEmail(email) {
-  window.location.href = `mailto:${email}?subject=Re: Contact Form Submission`;
-}
-
-// ─────────────────────────────────────────────
-// EXPORT AS CSV
-// ─────────────────────────────────────────────
-function exportMessages() {
-  const submissions = JSON.parse(localStorage.getItem("contactSubmissions") || "[]");
-
-  if (submissions.length === 0) {
-    alert("No messages to export");
-    return;
-  }
-
-  // Create CSV header
-  const headers = ["Date", "First Name", "Last Name", "Email", "Phone", "Subject", "Message"];
-  const rows = submissions.map(m => [
-    new Date(m.timestamp).toLocaleString(),
-    m.firstName,
-    m.lastName,
-    m.email,
-    m.phone,
-    `"${m.subject}"`,
-    `"${m.message.replace(/"/g, '""')}"`
-  ]);
-
-  // Build CSV content
-  let csv = headers.join(",") + "\n";
-  rows.forEach(row => {
-    csv += row.join(",") + "\n";
-  });
-
-  // Create blob and download
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  const url = URL.createObjectURL(blob);
-
-  link.href = url;
-  link.download = `contact-messages-${new Date().toISOString().split('T')[0]}.csv`;
-  link.click();
-
-  console.log("✅ Exported " + submissions.length + " messages");
-}
-
-// ─────────────────────────────────────────────
-// CLEAR ALL MESSAGES
-// ─────────────────────────────────────────────
-function clearAllMessages() {
-  if (confirm("⚠️ This will permanently delete ALL messages. Are you sure?")) {
-    localStorage.setItem("contactSubmissions", "[]");
-    loadMessages();
-    console.log("🗑️ All messages cleared");
-  }
-}
-
-// ─────────────────────────────────────────────
-// INITIALIZATION
-// ─────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("🚀 Contact messages dashboard loaded");
-  loadMessages();
-
-  // Auto-refresh every 10 seconds
-  setInterval(loadMessages, 10000);
-});
 </script>
 </body>
 </html>
