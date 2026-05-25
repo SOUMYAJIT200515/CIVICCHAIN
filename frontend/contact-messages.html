@@ -6,106 +6,718 @@
   <title>Contact Messages — CivicChain Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
-    :root{--bg:#030712;--surface:#0d1117;--border:#1e2936;--accent:#00e5ff;--accent2:#7c3aed;--text:#e2e8f0;--muted:#64748b;--success:#10b981;--warning:#f59e0b;--error:#ef4444;}
+    :root{--bg:#030712;--surface:#0d1117;--border:#1e2936;--accent:#00e5ff;--text:#e2e8f0;--muted:#64748b;--success:#10b981;--warning:#f59e0b;--error:#ef4444;}
     *{margin:0;padding:0;box-sizing:border-box;}
-    body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden;}
-    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px);background-size:60px 60px;z-index:0;pointer-events:none;}
-    
-    nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:20px 60px;background:rgba(3,7,18,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
-    .logo{font-size:1.3rem;font-weight:800;letter-spacing:-.02em;color:var(--text);display:flex;align-items:center;gap:10px;text-decoration:none;}
-    .logo-dot{width:10px;height:10px;background:var(--accent);border-radius:50%;animation:pulse-dot 2s infinite;}
-    @keyframes pulse-dot{0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,.4)}50%{box-shadow:0 0 0 8px rgba(0,229,255,0)}}
-    .nav-links{display:flex;gap:32px;list-style:none;}
-    .nav-links a{color:var(--muted);text-decoration:none;font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;font-weight:500;transition:color .2s;}
-    .nav-links a:hover{color:var(--text);}
-    
-    .container{flex:1;padding:120px 60px 60px;position:relative;z-index:1;}
-    .header{margin-bottom:40px;}
-    .header-tag{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
-    .status-dot{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:blink 1.5s infinite;}
+    body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden;}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.02) 1px,transparent 1px);background-size:60px 60px;z-index:0;pointer-events:none;}
+
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 60px;height:64px;background:rgba(3,7,18,.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+    .logo{font-size:1.1rem;font-weight:800;color:var(--text);display:flex;align-items:center;gap:10px;text-decoration:none;}
+    .logo-dot{width:9px;height:9px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite;}
+    @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,.4)}50%{box-shadow:0 0 0 10px rgba(0,229,255,0)}}
+    .nav-links{display:flex;gap:24px;list-style:none;}
+    .nav-links a{color:var(--muted);text-decoration:none;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;transition:color .2s;}
+    .nav-links a:hover{color:var(--accent);}
+
+    .container{padding:84px 60px 60px;position:relative;z-index:1;max-width:1200px;margin:0 auto;}
+
+    .page-header{margin-bottom:36px;}
+    .page-tag{font-family:'JetBrains Mono',monospace;font-size:.62rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+    .blink-dot{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:blink 1.5s infinite;}
     @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-    h1{font-size:2.5rem;font-weight:800;letter-spacing:-.03em;margin-bottom:10px;}
-    .subtitle{font-size:1rem;color:var(--muted);}
-    
-    .controls{display:flex;gap:16px;margin-bottom:30px;align-items:center;}
-    .btn{padding:10px 24px;background:var(--accent);color:var(--bg);font-family:'Syne',sans-serif;font-weight:600;font-size:.85rem;letter-spacing:.05em;text-transform:uppercase;border:none;border-radius:4px;cursor:pointer;transition:transform .2s,box-shadow .2s;}
-    .btn:hover{transform:translateY(-2px);box-shadow:0 0 30px rgba(0,229,255,.3);}
-    .btn-secondary{background:transparent;border:1px solid var(--border);color:var(--text);}
-    .btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
-    
-    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:40px;}
-    .stat-card{background:var(--surface);border:1px solid var(--border);padding:24px;border-radius:8px;}
-    .stat-value{font-size:2rem;font-weight:800;color:var(--accent);margin-bottom:6px;}
-    .stat-label{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;}
-    
-    .messages-container{display:grid;gap:16px;}
-    .message-card{background:var(--surface);border:1px solid var(--border);padding:24px;border-radius:8px;transition:all .3s;}
-    .message-card:hover{border-color:var(--accent);box-shadow:0 0 20px rgba(0,229,255,.1);}
-    
-    .message-header{display:flex;justify-content:space-between;align-items:start;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);}
-    .message-name{font-size:1.1rem;font-weight:700;color:var(--text);}
-    .message-time{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted);}
-    
-    .message-details{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;font-size:.85rem;}
-    .detail-item{display:flex;flex-direction:column;}
-    .detail-label{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);margin-bottom:4px;letter-spacing:.08em;text-transform:uppercase;}
-    .detail-value{color:var(--text);word-break:break-all;}
-    .detail-value a{color:var(--accent);text-decoration:none;}
-    .detail-value a:hover{text-decoration:underline;}
-    
-    .message-subject{font-weight:700;color:var(--accent);margin-bottom:12px;font-size:.95rem;}
-    .message-body{color:var(--muted);line-height:1.6;font-size:.9rem;margin-bottom:16px;padding:12px;background:rgba(0,229,255,.03);border-left:2px solid var(--accent);border-radius:4px;}
-    
-    .message-actions{display:flex;gap:8px;}
-    .action-btn{padding:6px 12px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:.75rem;border-radius:4px;cursor:pointer;transition:all .2s;}
-    .action-btn:hover{border-color:var(--accent);color:var(--accent);}
-    
-    .no-messages{text-align:center;padding:60px 40px;background:var(--surface);border:1px solid var(--border);border-radius:8px;}
-    .no-messages-icon{font-size:3rem;margin-bottom:16px;}
-    .no-messages-text{font-size:1rem;color:var(--muted);margin-bottom:20px;}
-    .no-messages-sub{font-size:.85rem;color:var(--muted);}
-    
-    .empty-state{text-align:center;padding:40px;}
-    
-    footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:30px 60px;text-align:center;}
-    .footer-copy{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);}
-    
-    @media(max-width:768px){nav{padding:16px 24px;}.container{padding:100px 24px 40px;}.stats{grid-template-columns:1fr;}.message-details{grid-template-columns:1fr;}.controls{flex-direction:column;}.controls > *{width:100%;}}
+    .page-header h1{font-size:2rem;font-weight:800;letter-spacing:-.03em;margin-bottom:6px;}
+    .page-header p{color:var(--muted);font-size:.9rem;}
+
+    .stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:32px;}
+    .stat{background:var(--surface);border:1px solid var(--border);padding:18px 22px;border-radius:8px;}
+    .stat-val{font-size:1.8rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent);margin-bottom:4px;}
+    .stat-val.green{color:var(--success);}
+    .stat-val.orange{color:var(--warning);}
+    .stat-label{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;}
+
+    .tab-nav{display:flex;border-bottom:1px solid var(--border);margin-bottom:28px;}
+    .tab-btn{flex:1;padding:13px 18px;font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;transition:all .2s;}
+    .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(0,229,255,.04);}
+    .tab-btn.tab-voter.active{color:var(--success);border-bottom-color:var(--success);background:rgba(16,185,129,.04);}
+    .tab-btn.tab-update.active{color:var(--warning);border-bottom-color:var(--warning);background:rgba(245,158,11,.04);}
+    .tab-content{display:none;}
+    .tab-content.active{display:block;animation:fadeIn .2s ease;}
+    @keyframes fadeIn{from{opacity:0}}
+
+    .controls{display:flex;gap:12px;margin-bottom:22px;align-items:center;flex-wrap:wrap;}
+    .ctrl-btn{padding:9px 20px;font-family:'Syne',sans-serif;font-weight:700;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;border:none;border-radius:5px;cursor:pointer;transition:all .2s;}
+    .ctrl-btn:hover{transform:translateY(-1px);}
+    .ctrl-accent{background:var(--accent);color:var(--bg);}
+    .ctrl-accent:hover{box-shadow:0 0 20px rgba(0,229,255,.3);}
+    .ctrl-ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
+    .ctrl-ghost:hover{border-color:var(--error);color:var(--error);}
+    .count-badge{font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--muted);margin-left:auto;}
+
+    .cards-list{display:grid;gap:14px;}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:22px;transition:border-color .25s,box-shadow .25s;}
+    .card:hover{border-color:rgba(0,229,255,.3);box-shadow:0 0 18px rgba(0,229,255,.06);}
+    .card.voter-card{border-left:3px solid var(--success);}
+    .card.update-card{border-left:3px solid var(--warning);}
+
+    .card-head{display:flex;justify-content:space-between;align-items:start;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+    .card-name{font-size:1rem;font-weight:700;}
+    .card-time{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);}
+
+    .card-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;font-size:.82rem;}
+    .card-grid.three{grid-template-columns:1fr 1fr 1fr;}
+    .detail{display:flex;flex-direction:column;gap:3px;}
+    .detail-label{font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;}
+    .detail-val{color:var(--text);word-break:break-all;}
+    .detail-val a{color:var(--accent);text-decoration:none;}
+    .detail-val a:hover{text-decoration:underline;}
+
+    .card-body{font-size:.85rem;color:var(--muted);line-height:1.6;padding:10px 12px;background:rgba(0,229,255,.025);border-left:2px solid var(--accent);border-radius:3px;margin-bottom:14px;}
+    .card-body.warn-body{border-left-color:var(--warning);background:rgba(245,158,11,.025);}
+
+    .status-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;}
+    .pill-pending{background:rgba(245,158,11,.12);color:var(--warning);border:1px solid var(--warning);}
+    .pill-approved{background:rgba(16,185,129,.12);color:var(--success);border:1px solid var(--success);}
+    .pill-rejected{background:rgba(239,68,68,.12);color:var(--error);border:1px solid var(--error);}
+
+    .card-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+    .act-btn{padding:6px 14px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.65rem;font-weight:700;border:none;cursor:pointer;transition:all .2s;letter-spacing:.06em;display:inline-flex;align-items:center;gap:5px;}
+    .act-btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
+    .act-btn:hover:not(:disabled){transform:translateY(-1px);}
+    .act-add{background:var(--success);color:var(--bg);}
+    .act-add:hover:not(:disabled){box-shadow:0 0 16px rgba(16,185,129,.35);}
+    .act-apply{background:var(--warning);color:#000;}
+    .act-apply:hover:not(:disabled){box-shadow:0 0 16px rgba(245,158,11,.35);}
+    .act-reject{background:transparent;border:1px solid var(--error);color:var(--error);}
+    .act-del{background:transparent;border:1px solid var(--border);color:var(--muted);}
+    .act-del:hover:not(:disabled){border-color:var(--error);color:var(--error);}
+    .act-copy{background:transparent;border:1px solid var(--border);color:var(--muted);}
+    .act-copy:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+    .act-reply{background:transparent;border:1px solid var(--border);color:var(--muted);}
+    .act-reply:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+
+    .api-badge{display:inline-flex;align-items:center;gap:4px;font-family:'JetBrains Mono',monospace;font-size:.58rem;padding:3px 8px;border-radius:3px;margin-left:auto;}
+    .api-badge.synced{background:rgba(16,185,129,.1);color:var(--success);border:1px solid rgba(16,185,129,.3);}
+    .api-badge.failed{background:rgba(239,68,68,.1);color:var(--error);border:1px solid rgba(239,68,68,.3);}
+    .api-badge.local{background:rgba(100,116,139,.1);color:var(--muted);border:1px solid rgba(100,116,139,.3);}
+
+    .btn-spinner{width:12px;height:12px;border:2px solid rgba(0,0,0,.2);border-top-color:currentColor;border-radius:50%;animation:spin .6s linear infinite;display:none;}
+    .btn-spinner.show{display:inline-block;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .auto-id-tag{font-family:'JetBrains Mono',monospace;font-size:.6rem;background:rgba(0,229,255,.08);color:var(--accent);border:1px solid rgba(0,229,255,.2);padding:3px 8px;border-radius:3px;}
+
+    .card.flash-ok{border-color:var(--success)!important;box-shadow:0 0 22px rgba(16,185,129,.25)!important;}
+    .card.flash-err{border-color:var(--error)!important;box-shadow:0 0 22px rgba(239,68,68,.2)!important;}
+
+    .empty{text-align:center;padding:60px 40px;background:var(--surface);border:1px solid var(--border);border-radius:8px;}
+    .empty-icon{font-size:2.8rem;margin-bottom:14px;}
+    .empty-text{color:var(--muted);font-size:.9rem;}
+
+    .toast{position:fixed;top:74px;right:20px;z-index:9999;padding:13px 18px;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:.72rem;pointer-events:none;animation:toastIn .3s ease;max-width:360px;line-height:1.4;}
+    .toast.s{background:rgba(16,185,129,.12);border:1px solid var(--success);color:var(--success);}
+    .toast.e{background:rgba(239,68,68,.12);border:1px solid var(--error);color:var(--error);}
+    .toast.w{background:rgba(245,158,11,.12);border:1px solid var(--warning);color:var(--warning);}
+    @keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+    footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:24px 60px;text-align:center;margin-top:40px;}
+    .footer-copy{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);}
+
+    @media(max-width:900px){
+      nav{padding:0 24px;}
+      .container{padding:80px 20px 40px;}
+      .stats-strip{grid-template-columns:1fr 1fr;}
+      .card-grid,.card-grid.three{grid-template-columns:1fr;}
+      .tab-btn{font-size:.6rem;padding:10px 6px;}
+    }
   </style>
 </head>
 <body>
 
-<!-- NAVIGATION -->
 <nav>
   <a href="index.html" class="logo"><div class="logo-dot"></div>CivicChain</a>
   <ul class="nav-links">
-    <li><a href="index.html">Home</a></li>
+    <li><a href="index.html">🏠Home</a></li>
     <li><a href="results.html">📊 Results</a></li>
     <li><a href="admin.html">⚙️ Admin</a></li>
   </ul>
 </nav>
 
-<!-- MAIN CONTENT -->
 <div class="container">
-  <!-- HEADER -->
-  <div class="header">
-    <div class="header-tag">
-      <span class="status-dot"></span>
-      Support Management
+  <div class="page-header">
+    <div class="page-tag"><span class="blink-dot"></span>Support Management</div>
+    <h1>Inbox &amp; Voter Requests</h1>
+    <p>Contact messages · Voter registration requests · Update requests — all in one place</p>
+  </div>
+
+  <div class="stats-strip">
+    <div class="stat"><div class="stat-val" id="stat-contact">0</div><div class="stat-label">Contact Messages</div></div>
+    <div class="stat"><div class="stat-val green" id="stat-voter">0</div><div class="stat-label">Registration Requests</div></div>
+    <div class="stat"><div class="stat-val orange" id="stat-update">0</div><div class="stat-label">Update Requests</div></div>
+    <div class="stat"><div class="stat-val" id="stat-pending">0</div><div class="stat-label">Pending Actions</div></div>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="contact">📬 Contact Messages</button>
+    <button class="tab-btn tab-voter" data-tab="voter">🗳️ Voter Registrations</button>
+    <button class="tab-btn tab-update" data-tab="update">✏️ Update Requests</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div class="tab-content active" id="tab-contact">
+    <div class="controls">
+      <button class="ctrl-btn ctrl-accent" onclick="exportCSV('contactSubmissions','contact-messages')">📥 Export CSV</button>
+      <button class="ctrl-btn ctrl-ghost" onclick="clearAll('contactSubmissions')">🗑️ Clear All</button>
+      <span class="count-badge">Total: <span id="count-contact">0</span></span>
     </div>
-    <h1>Contact Messages</h1>
-    <p class="subtitle">All contact form submissions from visitors</p>
+    <div class="cards-list" id="list-contact"></div>
+    <div class="empty" id="empty-contact" style="display:none;"><div class="empty-icon">📭</div><div class="empty-text">No contact messages yet</div></div>
   </div>
 
-  <!-- CONTROLS -->
-  <div class="controls">
-    <button class="btn" onclick="exportMessages()">📥 Export as CSV</button>
-    <button class="btn btn-secondary" onclick="clearAllMessages()">🗑️ Clear All</button>
-    <span style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:.85rem;">
-      Total Messages: <span id="totalCount">0</span>
-    </span>
+  <!-- TAB 2 -->
+  <div class="tab-content" id="tab-voter">
+    <div class="controls">
+      <button class="ctrl-btn ctrl-accent" onclick="exportCSV('voterRequests','voter-requests')">📥 Export CSV</button>
+      <button class="ctrl-btn ctrl-ghost" onclick="clearAll('voterRequests')">🗑️ Clear All</button>
+      <span class="count-badge">Pending: <span id="count-voter">0</span></span>
+    </div>
+    <div class="cards-list" id="list-voter"></div>
+    <div class="empty" id="empty-voter" style="display:none;"><div class="empty-icon">📋</div><div class="empty-text">No voter registration requests yet</div></div>
   </div>
 
+  <!-- TAB 3 -->
+  <div class="tab-content" id="tab-update">
+    <div class="controls">
+      <button class="ctrl-btn ctrl-accent" onclick="exportCSV('updateRequests','update-requests')">📥 Export CSV</button>
+      <button class="ctrl-btn ctrl-ghost" onclick="clearAll('updateRequests')">🗑️ Clear All</button>
+      <span class="count-badge">Pending: <span id="count-update">0</span></span>
+    </div>
+    <div class="cards-list" id="list-update"></div>
+    <div class="empty" id="empty-update" style="display:none;"><div class="empty-icon">✏️</div><div class="empty-text">No update requests yet</div></div>
+  </div>
+</div>
+
+<footer><div class="footer-copy">© 2026 CivicChain — Inbox Dashboard</div></footer>
+
+<script>
+  const API_BASE = "https://civicchain-1.onrender.com/api";
+
+  // ── API HELPERS (matching admin.js patterns exactly) ───────
+  async function getData(url) {
+    try {
+      const res = await fetch(API_BASE + url, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        mode: 'cors'
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`API Error ${res.status}: ${txt || res.statusText}`);
+      }
+      const text = await res.text();
+      if (text && text.trim().length > 0) {
+        try { return JSON.parse(text); } catch (e) { return { message: text }; }
+      }
+      return { message: "Success" };
+    } catch (err) { console.error("❌ GET error:", err); throw err; }
+  }
+
+  async function postData(url, data) {
+    try {
+      const res = await fetch(API_BASE + url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        mode: 'cors',
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`API Error ${res.status}: ${txt || res.statusText}`);
+      }
+      const text = await res.text();
+      if (text && text.trim().length > 0) {
+        try { return JSON.parse(text); } catch (e) { return { message: text }; }
+      }
+      return { message: "Success" };
+    } catch (err) { console.error("❌ POST error:", err); throw err; }
+  }
+
+  async function putData(url, data) {
+    try {
+      const res = await fetch(API_BASE + url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        mode: 'cors',
+        body: JSON.stringify(data)
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`API Error ${res.status}: ${txt || res.statusText}`);
+      }
+      const text = await res.text();
+      if (text && text.trim().length > 0) {
+        try { return JSON.parse(text); } catch (e) { return { message: text }; }
+      }
+      return { message: "Success" };
+    } catch (err) { console.error("❌ PUT error:", err); throw err; }
+  }
+
+  // ── AUTO VOTER ID: last voter in API table + 1 ─────────────
+  // Matches the exact voter object shape from admin.js renderVoters()
+  // API returns: { id, voterId, name, dob, mobileNo, hasVoted }
+  // voterId strings can be e.g. VOT001, VOT1001, V123 — extract trailing number
+  async function getNextVoterId() {
+    try {
+      const voters = await getData('/voters');
+      if (!Array.isArray(voters) || voters.length === 0) return 'VOT1001';
+
+      // Find the highest trailing numeric suffix across all voterIds
+      let maxNum = 1000;
+      voters.forEach(v => {
+        const match = String(v.voterId || '').match(/(\d+)$/);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      });
+
+      // Preserve prefix from the last entry, default to VOT
+      const lastVoter = voters[voters.length - 1];
+      const lastId = String(lastVoter?.voterId || 'VOT1000');
+      const prefixMatch = lastId.match(/^([A-Za-z]*)/);
+      const prefix = (prefixMatch && prefixMatch[1]) ? prefixMatch[1].toUpperCase() : 'VOT';
+
+      return `${prefix}${maxNum + 1}`;
+    } catch (err) {
+      console.warn('⚠️ Could not fetch voters for auto-ID:', err);
+      return 'VOT' + (Date.now() % 9000 + 1000);
+    }
+  }
+
+  // ── LS HELPERS ─────────────────────────────────────────────
+  function getLS(key) { return JSON.parse(localStorage.getItem(key) || '[]'); }
+  function setLS(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+  function fmtTime(iso) {
+    return new Date(iso).toLocaleString('en-IN', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+  }
+
+  // ── TOAST ──────────────────────────────────────────────────
+  let lastToast = 0;
+  function toast(msg, type = 's') {
+    const now = Date.now();
+    if (now - lastToast < 400) return;
+    lastToast = now;
+    const t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+  }
+
+  // ── TABS ───────────────────────────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ── STATS ──────────────────────────────────────────────────
+  function updateStats() {
+    const contacts = getLS('contactSubmissions');
+    const voters   = getLS('voterRequests');
+    const updates  = getLS('updateRequests');
+    const pending  = voters.filter(r => r.status === 'pending').length
+                   + updates.filter(r => r.status === 'pending').length;
+    document.getElementById('stat-contact').textContent = contacts.length;
+    document.getElementById('stat-voter').textContent   = voters.length;
+    document.getElementById('stat-update').textContent  = updates.length;
+    document.getElementById('stat-pending').textContent = pending;
+  }
+
+  // ── RENDER CONTACTS ────────────────────────────────────────
+  function renderContacts() {
+    const items = getLS('contactSubmissions').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+    document.getElementById('count-contact').textContent = items.length;
+    const list  = document.getElementById('list-contact');
+    const empty = document.getElementById('empty-contact');
+    list.innerHTML = '';
+    if (!items.length) { empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    items.forEach((m, i) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.id = 'contact-card-' + i;
+      card.innerHTML = `
+        <div class="card-head">
+          <div class="card-name">${m.firstName || ''} ${m.lastName || ''}</div>
+          <div class="card-time">${fmtTime(m.timestamp)}</div>
+        </div>
+        <div class="card-grid">
+          <div class="detail"><div class="detail-label">📧 Email</div><div class="detail-val"><a href="mailto:${m.email}">${m.email}</a></div></div>
+          <div class="detail"><div class="detail-label">📱 Phone</div><div class="detail-val">${m.phone || 'Not provided'}</div></div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--accent);margin-bottom:8px;font-weight:700;">Subject: ${m.subject || '—'}</div>
+        <div class="card-body">${m.message || ''}</div>
+        <div class="card-actions">
+          <button class="act-btn act-copy" onclick="copyContact(${i})">📋 Copy</button>
+          <button class="act-btn act-reply" onclick="window.location.href='mailto:${m.email}?subject=Re: ${encodeURIComponent(m.subject||'')}'">✉️ Reply</button>
+          <button class="act-btn act-del" onclick="deleteItem('contactSubmissions', ${i})">🗑️ Delete</button>
+        </div>`;
+      list.appendChild(card);
+    });
+  }
+
+  function copyContact(i) {
+    const m = getLS('contactSubmissions')[i];
+    navigator.clipboard.writeText(
+      `Name: ${m.firstName} ${m.lastName}\nEmail: ${m.email}\nPhone: ${m.phone||'N/A'}\nSubject: ${m.subject}\n\n${m.message}`
+    ).then(() => toast('📋 Copied to clipboard'));
+  }
+
+  // ── RENDER VOTER REQUESTS ──────────────────────────────────
+  function renderVoterRequests() {
+    const items = getLS('voterRequests').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+    document.getElementById('count-voter').textContent = items.filter(r => r.status === 'pending').length;
+    const list  = document.getElementById('list-voter');
+    const empty = document.getElementById('empty-voter');
+    list.innerHTML = '';
+    if (!items.length) { empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+
+    items.forEach((r, i) => {
+      const approved = r.status === 'approved';
+      const rejected = r.status === 'rejected';
+
+      const pill = approved
+        ? `<span class="status-pill pill-approved">✅ Added to Voters</span>`
+        : rejected
+        ? `<span class="status-pill pill-rejected">❌ Rejected</span>`
+        : `<span class="status-pill pill-pending">⏳ Pending</span>`;
+
+      const displayId = r.assignedVoterId || r.voterId || '—';
+      const isAutoId  = r.assignedVoterId && r.assignedVoterId !== r.voterId;
+
+      let apiBadge = '';
+      if (r.apiSynced === true)  apiBadge = `<span class="api-badge synced">⚡ API Synced</span>`;
+      if (r.apiSynced === false) apiBadge = `<span class="api-badge failed">⚠️ API Failed — saved locally</span>`;
+
+      const actionBtns = (approved || rejected) ? '' : `
+        <button class="act-btn act-add" id="add-btn-${i}" onclick="addVoterViaAPI(${i})">
+          <span class="btn-spinner" id="add-spinner-${i}"></span>
+          ✅ Approve &amp; Add
+        </button>
+        <button class="act-btn act-reject" id="rej-btn-voter-${i}" onclick="rejectRequest('voterRequests', ${i})">
+          ❌ Reject
+        </button>`;
+
+      const card = document.createElement('div');
+      card.className = 'card voter-card';
+      card.id = 'voter-card-' + i;
+      card.innerHTML = `
+        <div class="card-head">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <div class="card-name">${r.emoji || '👤'} ${r.name}</div>
+            ${pill}
+            ${apiBadge}
+          </div>
+          <div class="card-time">${fmtTime(r.timestamp)}</div>
+        </div>
+        <div class="card-grid three">
+          <div class="detail">
+            <div class="detail-label">🪪 Voter ID</div>
+            <div class="detail-val" style="color:var(--success);font-family:'JetBrains Mono',monospace;font-weight:700;">
+              ${displayId}
+              ${isAutoId ? `<span class="auto-id-tag" title="Auto-generated ID">AUTO</span>` : ''}
+            </div>
+          </div>
+          <div class="detail"><div class="detail-label">🎂 Date of Birth</div><div class="detail-val">${r.dob || '—'}</div></div>
+          <div class="detail"><div class="detail-label">📱 Phone</div><div class="detail-val">${r.phone || '—'}</div></div>
+        </div>
+        <div class="card-actions">
+          ${actionBtns}
+          <button class="act-btn act-del" onclick="deleteItem('voterRequests', ${i})">🗑️ Delete</button>
+        </div>`;
+      list.appendChild(card);
+    });
+  }
+
+  // ── ADD VOTER VIA API ──────────────────────────────────────
+  // Uses POST /voters exactly like saveVoter() in admin.js
+  // Auto voter ID = highest numeric suffix in API table + 1
+  async function addVoterViaAPI(i) {
+    const requests = getLS('voterRequests');
+    const r = requests[i];
+    if (!r || r.status !== 'pending') return;
+
+    const addBtn  = document.getElementById('add-btn-' + i);
+    const rejBtn  = document.getElementById('rej-btn-voter-' + i);
+    const spinner = document.getElementById('add-spinner-' + i);
+    const card    = document.getElementById('voter-card-' + i);
+
+    if (addBtn)  { addBtn.disabled = true; addBtn.innerHTML = '<span class="btn-spinner show"></span> Adding…'; }
+    if (rejBtn)  rejBtn.disabled = true;
+
+    try {
+      // Step 1: Auto-generate next voter ID from live API table
+      toast('🔄 Fetching next Voter ID from API…', 'w');
+      const autoVoterId = await getNextVoterId();
+      console.log('🪪 Auto voter ID:', autoVoterId);
+
+      // Step 2: POST /voters — same payload shape as admin.js saveVoter()
+      const payload = {
+        voterId:  autoVoterId,
+        name:     r.name     || '',
+        dob:      r.dob      || '',
+        mobileNo: r.phone    || '',   // request uses "phone", API uses "mobileNo"
+        hasVoted: false
+      };
+
+      console.log('📤 POST /voters', payload);
+      const result = await postData('/voters', payload);
+      console.log('✅ API response:', result);
+
+      // Step 3: Mark approved in localStorage
+      requests[i].status          = 'approved';
+      requests[i].approvedAt      = new Date().toISOString();
+      requests[i].assignedVoterId = autoVoterId;
+      requests[i].apiSynced       = true;
+      setLS('voterRequests', requests);
+
+      if (card) { card.classList.add('flash-ok'); setTimeout(() => card.classList.remove('flash-ok'), 1500); }
+      toast(`✅ ${r.name} added as ${autoVoterId}!`);
+
+    } catch (err) {
+      console.error('❌ API add voter failed:', err);
+
+      // Fallback: save to localStorage voters
+      const lsVoters = getLS('voters');
+      const fbId = 'VOT' + Date.now();
+      lsVoters.push({
+        id: fbId, voterId: fbId, name: r.name,
+        dob: r.dob, phone: r.phone, emoji: r.emoji || '👤',
+        addedFrom: 'voterRequest', addedAt: new Date().toISOString()
+      });
+      setLS('voters', lsVoters);
+
+      requests[i].status          = 'approved';
+      requests[i].approvedAt      = new Date().toISOString();
+      requests[i].assignedVoterId = fbId;
+      requests[i].apiSynced       = false;
+      setLS('voterRequests', requests);
+
+      if (card) { card.classList.add('flash-err'); setTimeout(() => card.classList.remove('flash-err'), 1500); }
+      toast(`⚠️ API error: ${err.message}. Saved locally as fallback.`, 'e');
+    }
+
+    renderVoterRequests();
+    updateStats();
+  }
+
+  // ── RENDER UPDATE REQUESTS ─────────────────────────────────
+  function renderUpdateRequests() {
+    const items = getLS('updateRequests').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+    document.getElementById('count-update').textContent = items.filter(r => r.status === 'pending').length;
+    const list  = document.getElementById('list-update');
+    const empty = document.getElementById('empty-update');
+    list.innerHTML = '';
+    if (!items.length) { empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+
+    items.forEach((r, i) => {
+      const approved = r.status === 'approved';
+      const rejected = r.status === 'rejected';
+
+      const pill = approved
+        ? `<span class="status-pill pill-approved">✅ Applied</span>`
+        : rejected
+        ? `<span class="status-pill pill-rejected">❌ Rejected</span>`
+        : `<span class="status-pill pill-pending">⏳ Pending</span>`;
+
+      let apiBadge = '';
+      if (r.apiSynced === true)  apiBadge = `<span class="api-badge synced">⚡ API Synced</span>`;
+      if (r.apiSynced === false) apiBadge = `<span class="api-badge failed">⚠️ API Failed</span>`;
+
+      const changes = [];
+      if (r.newVoterId) changes.push(`<b>New ID:</b> ${r.newVoterId}`);
+      if (r.name)       changes.push(`<b>Name:</b> ${r.name}`);
+      if (r.dob)        changes.push(`<b>DOB:</b> ${r.dob}`);
+      if (r.phone)      changes.push(`<b>Phone:</b> ${r.phone}`);
+      if (r.emoji)      changes.push(`<b>Emoji:</b> ${r.emoji}`);
+
+      const actionBtns = (approved || rejected) ? '' : `
+        <button class="act-btn act-apply" id="apply-btn-${i}" onclick="applyUpdateViaAPI(${i})">
+          <span class="btn-spinner" id="apply-spinner-${i}"></span>
+          ✅ Approve &amp; Apply
+        </button>
+        <button class="act-btn act-reject" id="rej-btn-update-${i}" onclick="rejectRequest('updateRequests', ${i})">
+          ❌ Reject
+        </button>`;
+
+      const card = document.createElement('div');
+      card.className = 'card update-card';
+      card.id = 'update-card-' + i;
+      card.innerHTML = `
+        <div class="card-head">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <div class="card-name">Voter ID: <span style="color:var(--warning);font-family:'JetBrains Mono',monospace;">${r.existingVoterId}</span></div>
+            ${pill}
+            ${apiBadge}
+          </div>
+          <div class="card-time">${fmtTime(r.timestamp)}</div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted);margin-bottom:10px;">
+          Changes requested: ${changes.join(' · ') || '<span style="color:var(--error)">None specified</span>'}
+        </div>
+        <div class="card-body warn-body">📝 Reason: ${r.reason || 'No reason provided'}</div>
+        <div class="card-actions">
+          ${actionBtns}
+          <button class="act-btn act-del" onclick="deleteItem('updateRequests', ${i})">🗑️ Delete</button>
+        </div>`;
+      list.appendChild(card);
+    });
+  }
+
+  // ── APPLY UPDATE VIA API ───────────────────────────────────
+  // Uses GET /voters to find by voterId string, then PUT /voters/{id}
+  // Matches putData() pattern from admin.js editVoter() / saveVoter()
+  async function applyUpdateViaAPI(i) {
+    const requests = getLS('updateRequests');
+    const r = requests[i];
+    if (!r || r.status !== 'pending') return;
+
+    const applyBtn = document.getElementById('apply-btn-' + i);
+    const rejBtn   = document.getElementById('rej-btn-update-' + i);
+    const card     = document.getElementById('update-card-' + i);
+
+    if (applyBtn) { applyBtn.disabled = true; applyBtn.innerHTML = '<span class="btn-spinner show"></span> Applying…'; }
+    if (rejBtn)   rejBtn.disabled = true;
+
+    try {
+      // Step 1: Fetch all voters to find the matching one by voterId string
+      toast('🔄 Looking up voter in API…', 'w');
+      const allVoters = await getData('/voters');
+
+      if (!Array.isArray(allVoters)) throw new Error('Invalid response from /voters');
+
+      // Match by voterId string (what the user sees), not the internal numeric id
+      const voter = allVoters.find(v => v.voterId === r.existingVoterId);
+      if (!voter) throw new Error(`Voter "${r.existingVoterId}" not found in the database`);
+
+      console.log('🔍 Found voter:', voter);
+
+      // Step 2: Build update payload — only override fields the request provides
+      // API field mapping: request.phone → API mobileNo (same as admin.js saveVoter)
+      const payload = {
+        voterId:  r.newVoterId || voter.voterId,
+        name:     r.name       || voter.name,
+        dob:      r.dob        || voter.dob        || '',
+        mobileNo: r.phone      || voter.mobileNo   || '',
+        hasVoted: voter.hasVoted ?? false
+      };
+
+      // Step 3: PUT /voters/{voter.id} — uses internal numeric id, same as admin.js editVoter()
+      console.log(`📤 PUT /voters/${voter.id}`, payload);
+      const result = await putData(`/voters/${voter.id}`, payload);
+      console.log('✅ API update response:', result);
+
+      // Step 4: Mark approved
+      requests[i].status        = 'approved';
+      requests[i].approvedAt    = new Date().toISOString();
+      requests[i].apiSynced     = true;
+      requests[i].apiVoterDbId  = voter.id;
+      setLS('updateRequests', requests);
+
+      if (card) { card.classList.add('flash-ok'); setTimeout(() => card.classList.remove('flash-ok'), 1500); }
+      toast(`✅ Voter "${r.existingVoterId}" updated via API!`);
+
+    } catch (err) {
+      console.error('❌ API update voter failed:', err);
+
+      // Fallback: apply changes to localStorage voters
+      const lsVoters = getLS('voters');
+      const idx = lsVoters.findIndex(v => (v.voterId || v.id) === r.existingVoterId);
+      if (idx !== -1) {
+        if (r.name)       lsVoters[idx].name    = r.name;
+        if (r.dob)        lsVoters[idx].dob     = r.dob;
+        if (r.phone)      lsVoters[idx].phone   = r.phone;
+        if (r.emoji)      lsVoters[idx].emoji   = r.emoji;
+        if (r.newVoterId) lsVoters[idx].voterId = r.newVoterId;
+        lsVoters[idx].updatedAt = new Date().toISOString();
+        setLS('voters', lsVoters);
+      }
+
+      requests[i].status     = 'approved';
+      requests[i].approvedAt = new Date().toISOString();
+      requests[i].apiSynced  = false;
+      setLS('updateRequests', requests);
+
+      if (card) { card.classList.add('flash-err'); setTimeout(() => card.classList.remove('flash-err'), 1500); }
+      toast(`⚠️ API error: ${err.message}. Applied locally as fallback.`, 'e');
+    }
+
+    renderUpdateRequests();
+    updateStats();
+  }
+
+  // ── REJECT REQUEST ─────────────────────────────────────────
+  function rejectRequest(lsKey, i) {
+    if (!confirm('Reject this request?')) return;
+    const items = getLS(lsKey);
+    items[i].status     = 'rejected';
+    items[i].rejectedAt = new Date().toISOString();
+    setLS(lsKey, items);
+    toast('❌ Request rejected.');
+    renderAll();
+  }
+
+  // ── SHARED UTILS ───────────────────────────────────────────
+  function deleteItem(lsKey, i) {
+    if (!confirm('Delete this item permanently?')) return;
+    const items = getLS(lsKey);
+    items.splice(i, 1);
+    setLS(lsKey, items);
+    toast('🗑️ Deleted.');
+    renderAll();
+  }
+
+  function clearAll(lsKey) {
+    if (!confirm('⚠️ Delete ALL items in this section?')) return;
+    setLS(lsKey, []);
+    toast('🗑️ All cleared.');
+    renderAll();
+  }
+
+  function exportCSV(lsKey, filename) {
+    const items = getLS(lsKey);
+    if (!items.length) { toast('No items to export', 'e'); return; }
+    const keys = Object.keys(items[0]);
+    let csv = keys.join(',') + '\n';
+    items.forEach(m => {
+      csv += keys.map(k => `"${String(m[k] || '').replace(/"/g, '""')}"`).join(',') + '\n';
+    });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    link.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    toast('📥 CSV exported!');
+  }
+
+  function renderAll() {
+    renderContacts();
+    renderVoterRequests();
+    renderUpdateRequests();
+    updateStats();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    renderAll();
+    setInterval(renderAll, 20000);
+  });
+</script>
+</body>
+</html>
   <!-- STATISTICS -->
   <div class="stats">
     <div class="stat-card">
