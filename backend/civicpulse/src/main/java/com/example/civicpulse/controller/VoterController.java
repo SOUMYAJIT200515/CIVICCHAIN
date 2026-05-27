@@ -365,20 +365,21 @@ public class VoterController {
                     .body(error);
         }
     }
-
-    // ─────────────────────────────────────────
-    // SEND OTP
-    // ─────────────────────────────────────────
-   @PostMapping("/{voterId}/send-otp")
+// ─────────────────────────────────────────
+// SEND OTP
+// ─────────────────────────────────────────
+@PostMapping("/{voterId}/send-otp")
 public ResponseEntity<?> sendOtp(
         @PathVariable String voterId
 ) {
 
     try {
 
+        // FIND VOTER USING voterId
         Optional<Voter> voterOpt =
                 repo.findByVoterId(voterId);
 
+        // CHECK IF VOTER EXISTS
         if (voterOpt.isEmpty()) {
 
             return ResponseEntity.badRequest()
@@ -388,8 +389,19 @@ public ResponseEntity<?> sendOtp(
                     ));
         }
 
+        // GET VOTER
         Voter voter = voterOpt.get();
 
+        // DEBUG LOGS
+        System.out.println(
+                "VOTER ID = " + voter.getVoterId()
+        );
+
+        System.out.println(
+                "DB MOBILE = " + voter.getMobileNo()
+        );
+
+        // SEND OTP TO REAL MOBILE NUMBER
         String otp =
                 otpService.generateAndSendOtp(
                         voter.getMobileNo()
@@ -401,7 +413,7 @@ public ResponseEntity<?> sendOtp(
         response.put("success", true);
         response.put("message", "OTP sent");
 
-        // DEV ONLY
+        // ONLY FOR DEVELOPMENT
         response.put("otp", otp);
 
         return ResponseEntity.ok(response);
@@ -421,58 +433,80 @@ public ResponseEntity<?> sendOtp(
                 .body(error);
     }
 }
-    // ─────────────────────────────────────────
-    // VERIFY OTP
-    // ─────────────────────────────────────────
-    @PostMapping("/{voterId}/verify-otp")
-    public ResponseEntity<?> verifyOtp(
-            @PathVariable String voterId,
-            @RequestBody Map<String, String> body
-    ) {
-        try {
 
-            String otp = body.get("otp");
+// ─────────────────────────────────────────
+// VERIFY OTP
+// ─────────────────────────────────────────
+@PostMapping("/{voterId}/verify-otp")
+public ResponseEntity<?> verifyOtp(
+        @PathVariable String voterId,
+        @RequestBody Map<String, String> body
+) {
 
-           Optional<Voter> voterOpt =
-        repo.findByVoterId(voterId);
+    try {
 
-if (voterOpt.isEmpty()) {
+        String otp =
+                body.get("otp");
 
-    return ResponseEntity.badRequest()
-            .body(Map.of(
-                    "success", false,
-                    "message", "Voter not found"
-            ));
-}
+        // FIND VOTER USING voterId
+        Optional<Voter> voterOpt =
+                repo.findByVoterId(voterId);
 
-Voter voter = voterOpt.get();
-
-boolean valid =
-        otpService.verifyOtp(
-                voter.getMobileNo(),
-                otp
-        );
-
-            if (!valid) {
-                return ResponseEntity.badRequest()
-                        .body(Map.of(
-                                "success", false,
-                                "message", "Invalid or expired OTP"
-                        ));
-            }
-
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "OTP verified successfully"
-            ));
-
-        } catch (Exception e) {
+        // CHECK IF VOTER EXISTS
+        if (voterOpt.isEmpty()) {
 
             return ResponseEntity.badRequest()
                     .body(Map.of(
                             "success", false,
-                            "message", e.getMessage()
+                            "message", "Voter not found"
                     ));
         }
+
+        // GET VOTER
+        Voter voter = voterOpt.get();
+
+        // DEBUG LOGS
+        System.out.println(
+                "VERIFYING OTP FOR MOBILE = "
+                        + voter.getMobileNo()
+        );
+
+        // VERIFY USING REAL MOBILE NUMBER
+        boolean valid =
+                otpService.verifyOtp(
+                        voter.getMobileNo(),
+                        otp
+                );
+
+        // INVALID OTP
+        if (!valid) {
+
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                            "success", false,
+                            "message", "Invalid or expired OTP"
+                    ));
+        }
+
+        // SUCCESS
+        return ResponseEntity.ok(
+                Map.of(
+                        "success", true,
+                        "message", "OTP verified successfully"
+                )
+        );
+
+    } catch (Exception e) {
+
+        e.printStackTrace();
+
+        return ResponseEntity.badRequest()
+                .body(
+                        Map.of(
+                                "success", false,
+                                "message", e.getMessage()
+                        )
+                );
     }
+}
 }
