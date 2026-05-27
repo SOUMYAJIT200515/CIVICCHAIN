@@ -7,6 +7,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -15,107 +16,221 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class OtpService {
 
-    private final Map<String, OtpData> otpStorage = new ConcurrentHashMap<>();
+    // In-memory OTP storage
+    private final Map<String, OtpData> otpStorage =
+            new ConcurrentHashMap<>();
+
+    // Secure OTP generator
     private final SecureRandom random = new SecureRandom();
 
-    // Pulls your secret API key securely from Render Environment Variables
+    // API key from Render Environment Variables
     @Value("${SMS_API_KEY:}")
     private String smsApiKey;
 
+    // ─────────────────────────────────────────────
+    // GENERATE + SEND OTP
+    // ─────────────────────────────────────────────
     public String generateAndSendOtp(String mobileNumber) {
-        // 1. Clean the mobile number (Removes any accidental spaces, +91, or 0 prefixes)
-        String cleanMobile = mobileNumber.trim().replaceAll("\\s+", "");
-        if (cleanMobile.startsWith("+91")) {
-            cleanMobile = cleanMobile.substring(3);
-        } else if (cleanMobile.startsWith("0")) {
-            cleanMobile = cleanMobile.substring(1);
-        }
 
-        // 2. Generate a secure 6-digit numeric OTP
-        String otp = String.format("%06d", random.nextInt(1000000)); 
+        // Clean mobile number
+        String cleanMobile = sanitizeMobile(mobileNumber);
 
-        OtpData data = new OtpData(otp, LocalDateTime.now().plusMinutes(5));
+        // Generate 6-digit OTP
+        String otp = String.format(
+                "%06d",
+                random.nextInt(1000000)
+        );
+
+        // Store OTP for 5 minutes
+        OtpData data = new OtpData(
+                otp,
+                LocalDateTime.now().plusMinutes(5)
+        );
+
         otpStorage.put(cleanMobile, data);
 
-        // 3. Print to Render log as a safe fallback
-        System.out.println("🔐 Securely generated OTP for " + cleanMobile + " is: " + otp);
+        // Console fallback
+        System.out.println(
+                "🔐 Generated OTP for "
+                        + cleanMobile
+                        + " : "
+                        + otp
+        );
 
-        if (smsApiKey == null || smsApiKey.isEmpty()) {
-            System.err.println("❌ SMS Gateway Error: SMS_API_KEY is missing in Render Environment Settings.");
+        // Check API key
+        if (smsApiKey == null || smsApiKey.isBlank()) {
+
+            System.err.println(
+                    "❌ SMS_API_KEY missing from environment variables."
+            );
+
             return otp;
         }
 
-        // 4. Real-Life SMS Gateway API Dispatch (Strict Fast2SMS Route parameters)
+        // Send SMS
         try {
-            String urlString = "https://www.fast2sms.com/dev/bulkV2"
-                             + "?authorization=" + smsApiKey.trim()
-                             + "&variables_values=" + otp
-                             + "&route=otp"
-                             + "&numbers=" + cleanMobile;
+
+            String message =
+                    "Your CivicChain OTP is "
+                            + otp
+                            + ". Valid for 5 minutes.";
+
+            String encodedMessage =
+                    URLEncoder.encode(message, "UTF-8");
+
+            String urlString =
+                    "https://www.fast2sms.com/dev/bulkV2"
+                            + "?authorization=" + smsApiKey.trim()
+                            + "&route=q"
+                            + "&message=" + encodedMessage
+                            + "&language=english"
+                            + "&flash=0"
+                            + "&numbers=" + cleanMobile;
 
             URL url = new URL(urlString);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+            HttpURLConnection conn =
+                    (HttpURLConnection) url.openConnection();
+
             conn.setRequestMethod("GET");
-            
-            // Set browser headers so the gateway firewall recognizes the request safely
-            conn.setRequestProperty("User-Agent", "Mozilla/5.0");
-            conn.setRequestProperty("Accept", "application/json");
+
+            conn.setRequestProperty(
+                    "User-Agent",
+                    "Mozilla/5.0"
+            );
+
+            conn.setRequestProperty(
+                    "Accept",
+                    "application/json"
+            );
 
             int responseCode = conn.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String inputLine;
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
-                }
-                in.close();
-                System.out.println("🚀 SMS Gateway Response: " + response.toString());
+
+            BufferedReader reader;
+
+            // SUCCESS RESPONSE
+            if (responseCode >= 200 && responseCode < 300) {
+
+                reader = new BufferedReader(
+                        new InputStreamReader(
+                                conn.getInputStream()
+                        )
+                );
+
             } else {
-                System.err.println("❌ SMS Gateway HTTP Error Code: " + responseCode);
-                
-                // Read the exact reason the API gateway rejected it
-                if (conn.getErrorStream() != null) {
-                    BufferedReader errorIn = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
-                    String errorLine;
-                    while ((errorLine = errorIn.readLine()) != null) {
-                        System.err.println("Detailed Gateway Error Message: " + errorLine);
-                    }
-                    errorIn.close();
-                }
+
+                // ERROR RESPONSE
+                reader = new BufferedReader(
+                        new InputStreamReader(
+                                conn.getErrorStream()
+                        )
+                );
             }
+
+            StringBuilder response = new StringBuilder();
+
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+
+            reader.close();
+
+            System.out.println(
+                    "📩 Fast2SMS Response: "
+                            + response
+            );
+
         } catch (Exception e) {
-            System.err.println("❌ Failed to reach SMS network gateway: " + e.getMessage());
+
+            System.err.println(
+                    "❌ Failed to send SMS"
+            );
+
+            e.printStackTrace();
         }
 
-        return otp; 
+        return otp;
     }
 
-    public boolean verifyOtp(String mobileNumber, String inputOtp) {
-        String cleanMobile = mobileNumber.trim().replaceAll("\\s+", "");
-        if (cleanMobile.startsWith("+91")) cleanMobile = cleanMobile.substring(3);
-        if (cleanMobile.startsWith("0")) cleanMobile = cleanMobile.substring(1);
+    // ─────────────────────────────────────────────
+    // VERIFY OTP
+    // ─────────────────────────────────────────────
+    public boolean verifyOtp(
+            String mobileNumber,
+            String inputOtp
+    ) {
 
-        OtpData data = otpStorage.get(cleanMobile);
+        String cleanMobile =
+                sanitizeMobile(mobileNumber);
 
-        if (data == null) return false;
-        if (LocalDateTime.now().isAfter(data.expiry)) {
-            otpStorage.remove(cleanMobile);
+        OtpData data =
+                otpStorage.get(cleanMobile);
+
+        // OTP missing
+        if (data == null) {
             return false;
         }
 
-        boolean valid = data.otp.equals(inputOtp.trim());
-        if (valid) {
-            otpStorage.remove(cleanMobile); // Securely consume the OTP
+        // OTP expired
+        if (LocalDateTime.now().isAfter(data.expiry)) {
+
+            otpStorage.remove(cleanMobile);
+
+            return false;
         }
+
+        // Compare OTP
+        boolean valid =
+                data.otp.equals(inputOtp.trim());
+
+        // Consume OTP after success
+        if (valid) {
+
+            otpStorage.remove(cleanMobile);
+
+            System.out.println(
+                    "✅ OTP verified for "
+                            + cleanMobile
+            );
+        }
+
         return valid;
     }
 
+    // ─────────────────────────────────────────────
+    // MOBILE SANITIZER
+    // ─────────────────────────────────────────────
+    private String sanitizeMobile(String mobile) {
+
+        String clean =
+                mobile.trim().replaceAll("\\s+", "");
+
+        if (clean.startsWith("+91")) {
+            clean = clean.substring(3);
+        }
+
+        if (clean.startsWith("0")) {
+            clean = clean.substring(1);
+        }
+
+        return clean;
+    }
+
+    // ─────────────────────────────────────────────
+    // OTP DATA MODEL
+    // ─────────────────────────────────────────────
     private static class OtpData {
+
         String otp;
+
         LocalDateTime expiry;
 
-        OtpData(String otp, LocalDateTime expiry) {
+        OtpData(
+                String otp,
+                LocalDateTime expiry
+        ) {
             this.otp = otp;
             this.expiry = expiry;
         }
