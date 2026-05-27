@@ -369,45 +369,58 @@ public class VoterController {
     // ─────────────────────────────────────────
     // SEND OTP
     // ─────────────────────────────────────────
-    @PostMapping("/{voterId}/send-otp")
-    public ResponseEntity<?> sendOtp(
-            @PathVariable String voterId
-    ) {
+   @PostMapping("/{voterId}/send-otp")
+public ResponseEntity<?> sendOtp(
+        @PathVariable String voterId
+) {
 
-        try {
+    try {
 
-            String otp =
-                    otpService.generateAndSendOtp(
-                            voterId
-                    );
+        Optional<Voter> voterOpt =
+                repo.findByVoterId(voterId);
 
-            Map<String, Object> response =
-                    new HashMap<>();
+        if (voterOpt.isEmpty()) {
 
-            response.put("success", true);
-            response.put("message", "OTP sent");
-
-            // DEV ONLY
-            response.put("otp", otp);
-
-            return ResponseEntity.ok(response);
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-
-            Map<String, Object> error =
-                    new HashMap<>();
-
-            error.put("success", false);
-            error.put("message", e.getMessage());
-
-            return ResponseEntity
-                    .badRequest()
-                    .body(error);
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                            "success", false,
+                            "message", "Voter not found"
+                    ));
         }
-    }
 
+        Voter voter = voterOpt.get();
+
+        String otp =
+                otpService.generateAndSendOtp(
+                        voter.getMobileNo()
+                );
+
+        Map<String, Object> response =
+                new HashMap<>();
+
+        response.put("success", true);
+        response.put("message", "OTP sent");
+
+        // DEV ONLY
+        response.put("otp", otp);
+
+        return ResponseEntity.ok(response);
+
+    } catch (Exception e) {
+
+        e.printStackTrace();
+
+        Map<String, Object> error =
+                new HashMap<>();
+
+        error.put("success", false);
+        error.put("message", e.getMessage());
+
+        return ResponseEntity
+                .badRequest()
+                .body(error);
+    }
+}
     // ─────────────────────────────────────────
     // VERIFY OTP
     // ─────────────────────────────────────────
@@ -420,7 +433,25 @@ public class VoterController {
 
             String otp = body.get("otp");
 
-            boolean valid = otpService.verifyOtp(voterId, otp);
+           Optional<Voter> voterOpt =
+        repo.findByVoterId(voterId);
+
+if (voterOpt.isEmpty()) {
+
+    return ResponseEntity.badRequest()
+            .body(Map.of(
+                    "success", false,
+                    "message", "Voter not found"
+            ));
+}
+
+Voter voter = voterOpt.get();
+
+boolean valid =
+        otpService.verifyOtp(
+                voter.getMobileNo(),
+                otp
+        );
 
             if (!valid) {
                 return ResponseEntity.badRequest()
