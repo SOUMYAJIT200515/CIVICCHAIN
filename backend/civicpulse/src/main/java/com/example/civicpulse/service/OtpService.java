@@ -45,14 +45,19 @@ public class OtpService {
     // ─────────────────────────────────────────────
     public String generateAndSendOtp(String mobileNumber) {
 
-        String cleanMobile =
-                sanitizeMobile(mobileNumber);
+       String cleanMobile =
+        sanitizeMobile(mobileNumber);
 
+System.out.println("INPUT MOBILE = " + mobileNumber);
+System.out.println("CLEAN MOBILE = " + cleanMobile);
+System.out.println("REAL MOBILE = " + REAL_SMS_NUMBER);
+System.out.println("MATCH = " + cleanMobile.equals(REAL_SMS_NUMBER));
         // ==================================================
         // REAL TWILIO OTP
         // ==================================================
-        if (cleanMobile.equals(REAL_SMS_NUMBER)) {
+       if (cleanMobile.equals(REAL_SMS_NUMBER)) {
 
+    System.out.println("ENTERED TWILIO BLOCK");
             try {
 
                 Twilio.init(
