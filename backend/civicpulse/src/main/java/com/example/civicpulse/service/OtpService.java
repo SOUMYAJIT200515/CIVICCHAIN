@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -36,34 +37,35 @@ public class OtpService {
     @Value("${TWILIO_VERIFY_SID}")
     private String verifySid;
 
-    // YOUR REAL TEST NUMBER
-    private static final String REAL_SMS_NUMBER =
-            "6290148614";
+    // YOUR REAL TEST NUMBER (digits only, no country code)
+    private static final String REAL_SMS_NUMBER = "6290148614";
 
     // ─────────────────────────────────────────────
     // GENERATE + SEND OTP
     // ─────────────────────────────────────────────
     public String generateAndSendOtp(String mobileNumber) {
 
-       String cleanMobile =
-        sanitizeMobile(mobileNumber);
+        String cleanMobile = sanitizeMobile(mobileNumber);
 
-System.out.println("INPUT MOBILE = " + mobileNumber);
-System.out.println("CLEAN MOBILE = " + cleanMobile);
-System.out.println("REAL MOBILE = " + REAL_SMS_NUMBER);
-System.out.println("MATCH = " + cleanMobile.equals(REAL_SMS_NUMBER));
-        // ==================================================
-        // REAL TWILIO OTP
-        // ==================================================
-       if (cleanMobile.equals(REAL_SMS_NUMBER)) {
+        // ── DEBUG LOGS ──────────────────────────────
+        System.out.println("INPUT MOBILE        = [" + mobileNumber + "]");
+        System.out.println("CLEAN MOBILE        = [" + cleanMobile + "]");
+        System.out.println("CLEAN MOBILE LENGTH = " + cleanMobile.length());
+        System.out.println("REAL MOBILE         = [" + REAL_SMS_NUMBER + "]");
+        System.out.println("REAL MOBILE LENGTH  = " + REAL_SMS_NUMBER.length());
+        System.out.println("MATCH               = " + cleanMobile.equals(REAL_SMS_NUMBER));
+        System.out.println("CLEAN MOBILE BYTES  = " + Arrays.toString(cleanMobile.getBytes()));
 
-    System.out.println("ENTERED TWILIO BLOCK");
+        // ==================================================
+        // REAL TWILIO OTP — sent only to the registered number
+        // ==================================================
+        if (cleanMobile.equals(REAL_SMS_NUMBER)) {
+
+            System.out.println(">>> ENTERED TWILIO BLOCK — sending real SMS");
+
             try {
 
-                Twilio.init(
-                        accountSid,
-                        authToken
-                );
+                Twilio.init(accountSid, authToken);
 
                 Verification.creator(
                         verifySid,
@@ -71,46 +73,30 @@ System.out.println("MATCH = " + cleanMobile.equals(REAL_SMS_NUMBER));
                         "sms"
                 ).create();
 
-                System.out.println(
-                        "✅ REAL OTP SENT TO "
-                                + cleanMobile
-                );
+                System.out.println("✅ REAL OTP SENT TO " + cleanMobile);
 
                 return "TWILIO_OTP_SENT";
 
             } catch (Exception e) {
 
-                System.err.println(
-                        "❌ Twilio SMS failed"
-                );
-
+                System.err.println("❌ Twilio SMS failed for " + cleanMobile);
                 e.printStackTrace();
-
                 return "FAILED";
             }
         }
 
         // ==================================================
-        // LOCAL BACKEND OTP
+        // LOCAL / DEMO OTP — for all other numbers
         // ==================================================
-        String otp = String.format(
-                "%06d",
-                random.nextInt(1000000)
-        );
+        System.out.println(">>> ENTERED DEMO BLOCK — generating local OTP");
 
-        OtpData data = new OtpData(
-                otp,
-                LocalDateTime.now().plusMinutes(5)
-        );
+        String otp = String.format("%06d", random.nextInt(1000000));
+
+        OtpData data = new OtpData(otp, LocalDateTime.now().plusMinutes(5));
 
         otpStorage.put(cleanMobile, data);
 
-        System.out.println(
-                "🧪 DEMO OTP for "
-                        + cleanMobile
-                        + " = "
-                        + otp
-        );
+        System.out.println("🧪 DEMO OTP for [" + cleanMobile + "] = " + otp);
 
         return otp;
     }
@@ -118,25 +104,23 @@ System.out.println("MATCH = " + cleanMobile.equals(REAL_SMS_NUMBER));
     // ─────────────────────────────────────────────
     // VERIFY OTP
     // ─────────────────────────────────────────────
-    public boolean verifyOtp(
-            String mobileNumber,
-            String inputOtp
-    ) {
+    public boolean verifyOtp(String mobileNumber, String inputOtp) {
 
-        String cleanMobile =
-                sanitizeMobile(mobileNumber);
+        String cleanMobile = sanitizeMobile(mobileNumber);
+
+        System.out.println("VERIFYING OTP FOR CLEAN MOBILE = [" + cleanMobile + "]");
+        System.out.println("MATCH WITH REAL NUMBER         = " + cleanMobile.equals(REAL_SMS_NUMBER));
 
         // ==================================================
         // VERIFY USING TWILIO
         // ==================================================
         if (cleanMobile.equals(REAL_SMS_NUMBER)) {
 
+            System.out.println(">>> TWILIO VERIFY BLOCK");
+
             try {
 
-                Twilio.init(
-                        accountSid,
-                        authToken
-                );
+                Twilio.init(accountSid, authToken);
 
                 VerificationCheck check =
                         VerificationCheck.creator(verifySid)
@@ -144,26 +128,16 @@ System.out.println("MATCH = " + cleanMobile.equals(REAL_SMS_NUMBER));
                                 .setCode(inputOtp.trim())
                                 .create();
 
-                boolean approved =
-                        "approved".equalsIgnoreCase(
-                                check.getStatus()
-                        );
+                boolean approved = "approved".equalsIgnoreCase(check.getStatus());
 
-                System.out.println(
-                        "✅ TWILIO VERIFY STATUS: "
-                                + check.getStatus()
-                );
+                System.out.println("✅ TWILIO VERIFY STATUS: " + check.getStatus());
 
                 return approved;
 
             } catch (Exception e) {
 
-                System.err.println(
-                        "❌ Twilio verification failed"
-                );
-
+                System.err.println("❌ Twilio verification failed");
                 e.printStackTrace();
-
                 return false;
             }
         }
@@ -171,50 +145,49 @@ System.out.println("MATCH = " + cleanMobile.equals(REAL_SMS_NUMBER));
         // ==================================================
         // VERIFY LOCAL OTP
         // ==================================================
-        OtpData data =
-                otpStorage.get(cleanMobile);
+        System.out.println(">>> LOCAL VERIFY BLOCK");
+
+        OtpData data = otpStorage.get(cleanMobile);
 
         if (data == null) {
+            System.out.println("❌ No OTP found in storage for [" + cleanMobile + "]");
             return false;
         }
 
         if (LocalDateTime.now().isAfter(data.expiry)) {
-
             otpStorage.remove(cleanMobile);
-
+            System.out.println("❌ OTP expired for [" + cleanMobile + "]");
             return false;
         }
 
-        boolean valid =
-                data.otp.equals(inputOtp.trim());
+        boolean valid = data.otp.equals(inputOtp.trim());
 
         if (valid) {
-
             otpStorage.remove(cleanMobile);
-
-            System.out.println(
-                    "✅ LOCAL OTP VERIFIED FOR "
-                            + cleanMobile
-            );
+            System.out.println("✅ LOCAL OTP VERIFIED FOR [" + cleanMobile + "]");
+        } else {
+            System.out.println("❌ OTP mismatch for [" + cleanMobile + "]");
         }
 
         return valid;
     }
 
     // ─────────────────────────────────────────────
-    // SANITIZE MOBILE
+    // SANITIZE MOBILE — strips ALL non-digit chars,
+    // then removes leading country code / zero
     // ─────────────────────────────────────────────
     private String sanitizeMobile(String mobile) {
 
-        String clean =
-                mobile.trim()
-                        .replaceAll("\\s+", "");
+        // 1. Strip every character that is NOT a digit
+        String clean = mobile.trim().replaceAll("[^0-9]", "");
 
-        if (clean.startsWith("+91")) {
-            clean = clean.substring(3);
+        // 2. Remove Indian country code (91XXXXXXXXXX → XXXXXXXXXX)
+        if (clean.startsWith("91") && clean.length() == 12) {
+            clean = clean.substring(2);
         }
 
-        if (clean.startsWith("0")) {
+        // 3. Remove leading zero (0XXXXXXXXXX → XXXXXXXXXX)
+        if (clean.startsWith("0") && clean.length() == 11) {
             clean = clean.substring(1);
         }
 
@@ -227,13 +200,9 @@ System.out.println("MATCH = " + cleanMobile.equals(REAL_SMS_NUMBER));
     private static class OtpData {
 
         String otp;
-
         LocalDateTime expiry;
 
-        OtpData(
-                String otp,
-                LocalDateTime expiry
-        ) {
+        OtpData(String otp, LocalDateTime expiry) {
             this.otp = otp;
             this.expiry = expiry;
         }
