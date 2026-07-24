@@ -401,7 +401,7 @@
 <script>
 // Replace this with how your separate login page stores the ID
 const voterId = sessionStorage.getItem('voterVid') || "TEST_VOTER";
-const API_BASE = "https://civicchain-1.onrender.com/api";
+const API_BASE = "/api";
 
 // Redirect if no voter session
 if (!sessionStorage.getItem('voterVid')) {
